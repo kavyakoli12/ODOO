@@ -64,24 +64,47 @@ app.use(
   })
 );
 
+import path from 'node:path';
+import fs from 'node:fs';
+
 app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Root welcome route
-app.get('/', (_req, res) => {
-  res.json({
-    name: 'SafeMap API Service',
-    status: 'online',
-    version: '1.0.0',
-    documentation: '/api/v1',
-    healthCheck: '/api/v1/health',
-  });
-});
-
-// Mount main API router
+// Mount main API router FIRST
 app.use('/api/v1', apiRouter);
+
+// Check for built frontend dist folder in monorepo
+const possibleDistPaths = [
+  path.resolve(process.cwd(), 'frontend/dist'),
+  path.resolve(process.cwd(), '../frontend/dist'),
+];
+
+const frontendDistPath = possibleDistPaths.find((p) => fs.existsSync(p));
+
+if (frontendDistPath) {
+  console.log(`📦 Serving static frontend from: ${frontendDistPath}`);
+  app.use(express.static(frontendDistPath));
+
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+} else {
+  // Fallback root welcome route when frontend is not built
+  app.get('/', (_req, res) => {
+    res.json({
+      name: 'SafeMap API Service',
+      status: 'online',
+      version: '1.0.0',
+      documentation: '/api/v1',
+      healthCheck: '/api/v1/health',
+    });
+  });
+}
 
 // 404 & Global Error Handling
 app.use(notFound);
