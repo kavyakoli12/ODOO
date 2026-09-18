@@ -1,18 +1,24 @@
 {
   "name": "safemap-workspace",
   "version": "1.0.0",
-  "description": "SafeMap - Interactive Real-Time Crime Reporting Platform for Odoo Hackathon",
+  "description": "SafeMap — Interactive Real-Time Crime Reporting Platform",
   "private": true,
   "workspaces": [
     "frontend",
     "backend"
   ],
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev:backend": "npm run dev --workspace=backend",
     "dev:frontend": "npm run dev --workspace=frontend",
     "build:backend": "npm run build --workspace=backend",
     "build:frontend": "npm run build --workspace=frontend",
-    "typecheck": "npm run typecheck --workspace=backend && npm run typecheck --workspace=frontend"
+    "build:all": "npm run build:backend && npm run build:frontend",
+    "typecheck": "npm run typecheck --workspace=backend && npm run typecheck --workspace=frontend",
+    "start:backend": "npm run start --workspace=backend"
   },
   "keywords": [
     "crime-reporting",

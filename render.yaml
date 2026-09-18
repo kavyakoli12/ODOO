@@ -1,0 +1,47 @@
+services:
+  # ────────────────────────────────────────────────
+  # BACKEND — Node.js Web Service
+  # ────────────────────────────────────────────────
+  - type: web
+    name: safemap-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false          # Set this manually in Render dashboard
+      - key: CLIENT_ORIGIN
+        sync: false          # Set to your frontend URL after deploy
+      - key: JWT_ACCESS_SECRET
+        generateValue: true  # Render auto-generates a secure random value
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+    healthCheckPath: /api/v1/health
+
+  # ────────────────────────────────────────────────
+  # FRONTEND — Static Site (Vite build)
+  # ────────────────────────────────────────────────
+  - type: web
+    name: safemap-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false          # Set to https://safemap-backend.onrender.com/api/v1
+      - key: VITE_SOCKET_URL
+        sync: false          # Set to https://safemap-backend.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

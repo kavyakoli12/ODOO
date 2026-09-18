@@ -15,10 +15,21 @@ import { notFound } from './middleware/notFound.js';
 const app: Express = express();
 const server = http.createServer(app);
 
+// Allowed origins: CLIENT_ORIGIN env var + localhost for dev
+const allowedOrigins = [
+  env.CLIENT_ORIGIN,
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+].filter(Boolean);
+
 // Initialize Socket.IO with CORS support
 export const io = new SocketIOServer(server, {
   cors: {
-    origin: [env.CLIENT_ORIGIN, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (curl, mobile apps, Render health checks)
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS blocked: ${origin}`));
+    },
     credentials: true,
     methods: ['GET', 'POST'],
   },
@@ -43,7 +54,10 @@ app.use(
 
 app.use(
   cors({
-    origin: [env.CLIENT_ORIGIN, 'http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS blocked: ${origin}`));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
