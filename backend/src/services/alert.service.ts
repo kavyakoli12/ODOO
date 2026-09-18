@@ -10,6 +10,9 @@ export interface CreateAlertDTO {
   severity: 'info' | 'warning' | 'danger';
   alertType?: AlertType;
   cityName?: string;
+  latitude?: number;
+  longitude?: number;
+  radiusKm?: number;
   startsAt?: Date;
   expiresAt: Date;
   publishedById: string;
@@ -59,6 +62,22 @@ function toSafeAlert(a: any): SafeAlert {
 export async function createAlert(dto: CreateAlertDTO): Promise<SafeAlert> {
   const now = new Date();
 
+  const hasCoordinates = dto.latitude != null && dto.longitude != null;
+  const geographicScope: any = {
+    type: hasCoordinates ? 'radius' : 'city_wide',
+    cityName: dto.cityName || 'All Areas',
+  };
+
+  if (hasCoordinates) {
+    geographicScope.center = {
+      type: 'Point',
+      coordinates: [dto.longitude!, dto.latitude!],
+    };
+    if (dto.radiusKm) {
+      geographicScope.radiusKm = dto.radiusKm;
+    }
+  }
+
   if (isMongoConnected()) {
     if (!mongoose.Types.ObjectId.isValid(dto.publishedById)) {
       throw new Error('Invalid publisher ID');
@@ -69,10 +88,7 @@ export async function createAlert(dto: CreateAlertDTO): Promise<SafeAlert> {
       description: dto.description.trim(),
       severity: dto.severity,
       alertType: dto.alertType || 'safety_warning',
-      geographicScope: {
-        type: 'city_wide',
-        cityName: dto.cityName || 'All Areas',
-      },
+      geographicScope,
       isActive: true,
       startsAt: dto.startsAt || now,
       expiresAt: dto.expiresAt,
@@ -93,6 +109,7 @@ export async function createAlert(dto: CreateAlertDTO): Promise<SafeAlert> {
     description: dto.description.trim(),
     severity: dto.severity,
     alertType: dto.alertType || 'safety_warning',
+    geographicScope,
     cityName: dto.cityName || 'All Areas',
     isActive: true,
     startsAt: dto.startsAt || now,

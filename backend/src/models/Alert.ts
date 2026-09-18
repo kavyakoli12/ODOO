@@ -27,6 +27,22 @@ export interface IAlert extends Document {
   updatedAt: Date;
 }
 
+const PointSchema = new Schema(
+  {
+    type: {
+      type: String,
+      enum: ['Point'],
+      required: true,
+      default: 'Point',
+    },
+    coordinates: {
+      type: [Number], // [lng, lat]
+      required: true,
+    },
+  },
+  { _id: false }
+);
+
 const AlertSchema = new Schema<IAlert>(
   {
     title: {
@@ -58,14 +74,9 @@ const AlertSchema = new Schema<IAlert>(
         default: 'city_wide',
       },
       center: {
-        type: {
-          type: String,
-          enum: ['Point'],
-          default: 'Point',
-        },
-        coordinates: {
-          type: [Number], // [lng, lat]
-        },
+        type: PointSchema,
+        required: false,
+        default: undefined,
       },
       radiusKm: {
         type: Number,
@@ -104,7 +115,8 @@ const AlertSchema = new Schema<IAlert>(
   }
 );
 
-AlertSchema.index({ 'geographicScope.center': '2dsphere' });
+AlertSchema.index({ 'geographicScope.center': '2dsphere' }, { sparse: true });
 AlertSchema.index({ isActive: 1, expiresAt: 1 });
 
 export const Alert = mongoose.model<IAlert>('Alert', AlertSchema);
+

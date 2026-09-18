@@ -18,6 +18,9 @@ const createAlertSchema = z.object({
   severity: z.enum(['info', 'warning', 'danger']).default('warning'),
   alertType: z.enum(['safety_warning', 'missing_person', 'major_incident', 'area_warning', 'emergency_info']).optional().default('safety_warning'),
   cityName: z.string().max(100).optional(),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
+  radiusKm: z.number().optional(),
   expiresAt: z.string().refine((v) => !isNaN(Date.parse(v)), 'Invalid expiry date'),
 });
 

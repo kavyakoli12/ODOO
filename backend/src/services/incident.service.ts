@@ -1092,5 +1092,101 @@ export async function reviewIncident(
   return safeMemDoc;
 }
 
+export async function updateIncidentStatusDirect(
+  incidentId: string,
+  newStatus: IncidentStatus,
+  note: string,
+  officerUser: AuthUser
+): Promise<void> {
+  const now = new Date();
+  if (isMongoConnected()) {
+    if (!mongoose.Types.ObjectId.isValid(incidentId)) return;
+    const doc = await Incident.findById(incidentId).exec();
+    if (doc) {
+      const previousStatus = doc.status;
+      doc.status = newStatus;
+      if (newStatus === 'resolved') {
+        doc.resolutionSummary = note;
+      }
+      doc.updatedAt = now;
+      await doc.save();
+
+      await StatusHistory.create({
+        incidentId: doc._id,
+        previousStatus,
+        newStatus,
+        changedBy: new mongoose.Types.ObjectId(officerUser.id),
+        changedByRole: officerUser.role,
+        note,
+        createdAt: now,
+      });
+
+      const safeDoc = toSafeIncident(doc);
+      emitToRole('officer', 'incident:updated', safeDoc);
+      if (safeDoc.reporterId) {
+        emitToUser(safeDoc.reporterId, 'incident:status_changed', {
+          incidentId: safeDoc.id,
+          trackingId: safeDoc.trackingId,
+          status: newStatus,
+          note,
+        });
+        createNotification({
+          recipientId: safeDoc.reporterId,
+          type: 'status_changed',
+          title: 'Incident Report Status Updated',
+          body: `Your report [${safeDoc.trackingId}] status was updated to ${newStatus.toUpperCase()}: ${note}`,
+          incidentId: safeDoc.id,
+          link: `/citizen/reports/${safeDoc.id}`,
+        }).catch(() => {});
+      }
+    }
+    return;
+  }
+
+  // Memory Fallback
+  seedInitialDemoIncidents();
+  const inc = memoryIncidents.get(incidentId);
+  if (inc) {
+    const previousStatus = inc.status;
+    inc.status = newStatus;
+    if (newStatus === 'resolved') {
+      inc.resolutionSummary = note;
+    }
+    inc.updatedAt = now;
+
+    const hist = {
+      id: `hist-${Date.now()}`,
+      incidentId: inc.id,
+      previousStatus,
+      newStatus,
+      changedBy: officerUser.id,
+      changedByRole: officerUser.role,
+      note,
+      createdAt: now,
+    };
+    memoryStatusHistory.push(hist);
+
+    const safeMemDoc = toSafeIncident(inc, memoryStatusHistory.filter((h) => h.incidentId === inc.id));
+    emitToRole('officer', 'incident:updated', safeMemDoc);
+    if (safeMemDoc.reporterId) {
+      emitToUser(safeMemDoc.reporterId, 'incident:status_changed', {
+        incidentId: safeMemDoc.id,
+        trackingId: safeMemDoc.trackingId,
+        status: newStatus,
+        note,
+      });
+      createNotification({
+        recipientId: safeMemDoc.reporterId,
+        type: 'status_changed',
+        title: 'Incident Report Status Updated',
+        body: `Your report [${safeMemDoc.trackingId}] status was updated to ${newStatus.toUpperCase()}: ${note}`,
+        incidentId: safeMemDoc.id,
+        link: `/citizen/reports/${safeMemDoc.id}`,
+      }).catch(() => {});
+    }
+  }
+}
+
+
 
 

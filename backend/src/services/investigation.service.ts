@@ -12,7 +12,7 @@ import { StatusHistory } from '../models/StatusHistory.js';
 import { AuditLog } from '../models/AuditLog.js';
 import { User } from '../models/User.js';
 import { findUserById, getOfficers, SafeUser } from './user.service.js';
-import { getOfficerIncidentDetail, SafeIncident } from './incident.service.js';
+import { getOfficerIncidentDetail, SafeIncident, updateIncidentStatusDirect } from './incident.service.js';
 import type { AuthUser } from '../middleware/auth.middleware.js';
 import { emitToUser, emitToRole } from '../socket.js';
 import { createNotification } from './notification.service.js';
@@ -503,10 +503,14 @@ export async function createInvestigation(
 
   memoryInvestigations.set(id, memoryRecord);
 
-  // Synchronize memory incident if present
-  const linkedIncident = await getOfficerIncidentDetail(data.incidentId);
-  if (linkedIncident) {
-    linkedIncident.status = 'investigation_ongoing';
+  // Synchronize linked incident status to 'investigation_ongoing'
+  if (data.incidentId) {
+    await updateIncidentStatusDirect(
+      data.incidentId,
+      'investigation_ongoing',
+      `Investigation opened: Case ${caseNumber} assigned to ${leadOfficerName}`,
+      officer
+    ).catch(() => {});
   }
 
   await recordAudit(
@@ -516,6 +520,7 @@ export async function createInvestigation(
     `Created case ${caseNumber} for incident ${data.incidentId}`
   );
 
+  const linkedIncident = await getOfficerIncidentDetail(data.incidentId);
   const safeMemInv = toSafeInvestigation(memoryRecord, linkedIncident);
 
   // Real-Time Socket Event & Notification
@@ -953,25 +958,13 @@ export async function updateInvestigationStatus(
       // Synchronize linked incident status to 'resolved'
       if (doc.incidentIds && doc.incidentIds.length > 0) {
         for (const incId of doc.incidentIds) {
-          const inc = await Incident.findById(incId).exec();
-          if (inc) {
-            const incPrevStatus = inc.status;
-            inc.status = 'resolved';
-            inc.resolutionSummary = doc.resolutionNotes;
-            inc.updatedAt = now;
-            await inc.save();
-
-            // StatusHistory entry
-            await StatusHistory.create({
-              incidentId: inc._id,
-              previousStatus: incPrevStatus,
-              newStatus: 'resolved',
-              changedBy: new mongoose.Types.ObjectId(officerUser.id),
-              changedByRole: officerUser.role,
-              note: `Case ${doc.caseNumber} resolved: ${doc.resolutionNotes}`,
-              createdAt: now,
-            });
-          }
+          const stringIncId = incId.toString();
+          await updateIncidentStatusDirect(
+            stringIncId,
+            'resolved',
+            `Case ${doc.caseNumber} resolved: ${doc.resolutionNotes}`,
+            officerUser
+          ).catch(() => {});
         }
       }
     }
@@ -1017,9 +1010,13 @@ export async function updateInvestigationStatus(
 
     // Synchronize memory incident
     if (c.incidentIds && c.incidentIds.length > 0) {
-      const linkedIncident = await getOfficerIncidentDetail(c.incidentIds[0]);
-      if (linkedIncident) {
-        linkedIncident.status = 'resolved';
+      for (const incId of c.incidentIds) {
+        await updateIncidentStatusDirect(
+          incId,
+          'resolved',
+          `Case ${c.caseNumber} resolved: ${c.resolutionNotes}`,
+          officerUser
+        ).catch(() => {});
       }
     }
   }

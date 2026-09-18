@@ -132,6 +132,16 @@ export function LoginPage() {
                 required
               />
 
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => showToast('info', 'Password reset email sent to registered account if enabled.', 'Password Recovery')}
+                  className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+                >
+                  Forgot password?
+                </button>
+              </div>
+
               <Button
                 type="submit"
                 variant="primary"

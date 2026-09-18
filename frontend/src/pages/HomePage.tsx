@@ -1,317 +1,271 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Shield,
+  ShieldAlert,
   MapPin,
   Radio,
   Activity,
   ArrowRight,
-  Database,
-  Cpu,
+  CheckCircle2,
+  Lock,
+  Eye,
+  FileText,
+  Clock,
+  Sparkles,
+  BarChart3,
+  Users,
+  PhoneCall,
 } from 'lucide-react';
 import {
   Button,
   Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
   CardContent,
-  CardFooter,
   Badge,
-  Input,
-  Select,
   Modal,
   useToast,
-  LoadingSpinner,
 } from '@/components/ui';
-import type { IncidentStatusType } from '@/components/ui/Badge';
-
-interface SystemHealth {
-  status: string;
-  uptimeSeconds: number;
-  environment: string;
-  database: {
-    isConnected: boolean;
-    state: string;
-    host?: string;
-  };
-}
 
 export function HomePage() {
+  const navigate = useNavigate();
   const { showToast } = useToast();
-  const [health, setHealth] = useState<SystemHealth | null>(null);
-  const [isLoadingHealth, setIsLoadingHealth] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [sampleText, setSampleText] = useState('');
-  const [sampleCategory, setSampleCategory] = useState('theft');
-
-  // Check backend health on mount
-  useEffect(() => {
-    const fetchHealth = async () => {
-      try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
-        const res = await fetch(`${apiUrl}/health`);
-        const data = await res.json();
-        if (data.success) {
-          setHealth(data);
-        }
-      } catch (err) {
-        console.warn('Backend currently offline or starting up');
-      } finally {
-        setIsLoadingHealth(false);
-      }
-    };
-
-    fetchHealth();
-  }, []);
-
-  const statuses: IncidentStatusType[] = [
-    'submitted',
-    'under_review',
-    'verified',
-    'assigned',
-    'investigation_ongoing',
-    'resolved',
-    'rejected',
-  ];
+  const [isBlueprintOpen, setIsBlueprintOpen] = useState(false);
 
   return (
-    <div className="space-y-10 py-4">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden rounded-2xl p-8 sm:p-12 glass-panel border border-brand-500/20 bg-gradient-to-br from-slate-900 via-indigo-950/30 to-slate-950">
-        <div className="relative z-10 max-w-3xl space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/20 border border-brand-500/40 text-brand-300 text-xs font-semibold">
-            <Radio className="w-3.5 h-3.5 text-brand-400 animate-pulse" />
-            Phase 1 Foundation Operational
+    <div className="space-y-12 py-4">
+      {/* 1. Hero Section */}
+      <section className="relative overflow-hidden rounded-3xl p-6 sm:p-12 border border-slate-800 bg-slate-900/90 shadow-2xl">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 max-w-4xl space-y-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-950/80 border border-indigo-700/50 text-indigo-300 text-xs font-semibold">
+            <Radio className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+            <span>Community Safety & Real-Time Incident Intelligence Platform</span>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-            Real-Time Community Safety <br />
-            <span className="bg-gradient-to-r from-brand-400 via-indigo-300 to-emerald-400 bg-clip-text text-transparent">
-              & Incident Reporting
+          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
+            Report incidents faster. <br />
+            <span className="bg-gradient-to-r from-indigo-400 via-sky-300 to-emerald-400 bg-clip-text text-transparent">
+              Protect your community together.
             </span>
           </h1>
 
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl">
-            A state-of-the-art interactive map system bridging citizens and law enforcement.
-            Every submission begins as a verified-gated <em>reported incident</em>, tracked
-            through end-to-end investigation with Odoo Helpdesk synchronization.
+            SafeMap provides direct, transparent public-safety reporting. Citizens report localized incidents anonymously or securely; law enforcement agencies verify and coordinate through automated Odoo ERP workflows.
           </p>
 
-          <div className="flex flex-wrap items-center gap-3 pt-2">
+          <div className="flex flex-wrap items-center gap-4 pt-2">
             <Button
-              variant="primary"
+              variant="danger"
               size="lg"
-              onClick={() =>
-                showToast(
-                  'info',
-                  'Authentication & multi-step reporting will be active in Phase 2 & 3!',
-                  'Phase 1 Notice'
-                )
-              }
+              className="h-12 px-6 text-base font-semibold shadow-lg shadow-rose-950/40"
+              onClick={() => navigate('/report')}
+              leftIcon={<ShieldAlert className="w-5 h-5" />}
               rightIcon={<ArrowRight className="w-4 h-4" />}
             >
               Report an Incident
             </Button>
 
             <Button
-              variant="secondary"
+              variant="outline"
               size="lg"
-              onClick={() => setIsModalOpen(true)}
+              className="h-12 px-6 text-base font-semibold border-slate-700 hover:bg-slate-800"
+              onClick={() => navigate('/map')}
+              leftIcon={<MapPin className="w-5 h-5 text-indigo-400" />}
             >
-              System Blueprint Overview
+              View Interactive Crime Map
             </Button>
           </div>
-        </div>
 
-        {/* Decorative Grid & Glow */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-600/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-      </section>
-
-      {/* Backend & DB Health Telemetry */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Activity className="w-5 h-5 text-brand-400" />
-            <h2 className="text-base font-semibold text-white">System Architecture Status</h2>
+          {/* Quick trust metrics */}
+          <div className="pt-6 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-slate-400">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>Verified Officer Triage</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-indigo-400 shrink-0" />
+              <span>Optional Anonymous Mode</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+              <span>AI Category Detection</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4 text-sky-400 shrink-0" />
+              <span>Odoo ERP Sync</span>
+            </div>
           </div>
-          <span className="text-xs text-slate-400">Endpoint: /api/v1/health</span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-brand-950/50 border border-brand-800/40 text-brand-400">
-              <Cpu className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="text-xs text-slate-400">Backend API (Express + TS)</div>
-              <div className="text-sm font-bold text-white flex items-center gap-2 mt-0.5">
-                {isLoadingHealth ? (
-                  <LoadingSpinner size="sm" />
-                ) : health ? (
-                  <>
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                    <span>Active (Port 5000)</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                    <span>Connecting...</span>
-                  </>
-                )}
-              </div>
-            </div>
-          </Card>
-
-          <Card className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-indigo-950/50 border border-indigo-800/40 text-indigo-400">
-              <Database className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="text-xs text-slate-400">Database Engine</div>
-              <div className="text-sm font-bold text-white flex items-center gap-2 mt-0.5">
-                {health?.database.isConnected ? (
-                  <>
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                    <span>Connected ({health.database.state})</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="w-2 h-2 rounded-full bg-amber-400" />
-                    <span>Mongoose Ready ({health?.database.state || 'Local/Atlas'})</span>
-                  </>
-                )}
-              </div>
-            </div>
-          </Card>
-
-          <Card className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-purple-950/50 border border-purple-800/40 text-purple-400">
-              <Radio className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="text-xs text-slate-400">Socket.IO Real-Time Engine</div>
-              <div className="text-sm font-bold text-white flex items-center gap-2 mt-0.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span>WebSockets Ready</span>
-              </div>
-            </div>
-          </Card>
         </div>
       </section>
 
-      {/* Interactive UI Component Foundation Showcase */}
+      {/* 2. Platform Telemetry & Safety Statistics */}
       <section className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Shield className="w-5 h-5 text-brand-400" />
-          <h2 className="text-base font-semibold text-white">
-            Foundation Design System & Interactive State Showcase
-          </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <Activity className="w-5 h-5 text-indigo-400" />
+              Platform Telemetry & Safety Metrics
+            </h2>
+            <p className="text-xs text-slate-400">Live operational data and system connection status</p>
+          </div>
+          <Badge status="verified" />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Card 1: 7 Status Lifecycle Badges */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Official Incident Status Pipeline</CardTitle>
-              <CardDescription>
-                SafeMap strictly distinguishes citizen submissions from verified crimes through a 7-stage auditable state machine.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2.5">
-                {statuses.map((st) => (
-                  <Badge key={st} status={st} />
-                ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="bg-slate-900/80 border-slate-800">
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="p-3 rounded-2xl bg-indigo-950 border border-indigo-800 text-indigo-400">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-white">100%</div>
+                <div className="text-xs text-slate-400">Auditable Reports</div>
               </div>
             </CardContent>
-            <CardFooter className="text-xs text-slate-400">
-              Every status transition automatically creates an audit record and pushes real-time WebSocket notifications.
-            </CardFooter>
           </Card>
 
-          {/* Card 2: Interactive Controls & Toast Feedback */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Interactive Elements & Toast Feedback</CardTitle>
-              <CardDescription>
-                Try the foundation form controls and real-time toast feedback system below.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Input
-                  label="Sample Search / Input"
-                  placeholder="e.g. Sector 4 incident..."
-                  value={sampleText}
-                  onChange={(e) => setSampleText(e.target.value)}
-                  leftIcon={<MapPin className="w-4 h-4" />}
-                />
-                <Select
-                  label="Incident Category Sample"
-                  options={[
-                    { value: 'theft', label: 'Theft / Burglary' },
-                    { value: 'assault', label: 'Assault' },
-                    { value: 'vandalism', label: 'Property Damage' },
-                    { value: 'suspicious', label: 'Suspicious Activity' },
-                  ]}
-                  value={sampleCategory}
-                  onChange={(e) => setSampleCategory(e.target.value)}
-                />
+          <Card className="bg-slate-900/80 border-slate-800">
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="p-3 rounded-2xl bg-emerald-950 border border-emerald-800 text-emerald-400">
+                <Clock className="w-6 h-6" />
               </div>
+              <div>
+                <div className="text-2xl font-bold text-white">&lt; 15 mins</div>
+                <div className="text-xs text-slate-400">Average Triage Time</div>
+              </div>
+            </CardContent>
+          </Card>
 
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <Button
-                  size="sm"
-                  variant="success"
-                  onClick={() => showToast('success', 'Incident report successfully acknowledged!', 'Submission Success')}
-                >
-                  Trigger Success Toast
-                </Button>
-                <Button
-                  size="sm"
-                  variant="danger"
-                  onClick={() => showToast('error', 'Rate limit exceeded: 5 reports per hour allowed.', 'Security Alert')}
-                >
-                  Trigger Error Toast
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => showToast('warning', 'Incident requires officer supervisor verification.', 'Warning')}
-                >
-                  Trigger Warning
-                </Button>
+          <Card className="bg-slate-900/80 border-slate-800">
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="p-3 rounded-2xl bg-amber-950 border border-amber-800 text-amber-400">
+                <BarChart3 className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-white">Odoo ERP</div>
+                <div className="text-xs text-slate-400">Helpdesk Bridge</div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-slate-900/80 border-slate-800">
+            <CardContent className="p-5 flex items-center gap-4">
+              <div className="p-3 rounded-2xl bg-sky-950 border border-sky-800 text-sky-400">
+                <Users className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-white">24/7</div>
+                <div className="text-xs text-slate-400">Community Safety</div>
               </div>
             </CardContent>
           </Card>
         </div>
       </section>
 
-      {/* System Overview Modal */}
+      {/* 3. How It Works Section */}
+      <section className="space-y-6">
+        <div className="text-center max-w-2xl mx-auto space-y-2">
+          <h2 className="text-2xl font-bold text-white">How SafeMap Works</h2>
+          <p className="text-xs sm:text-sm text-slate-400">
+            A transparent 4-stage pipeline that ensures reported issues receive swift authority review while protecting reporter privacy.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="p-6 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3 relative">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/40 text-indigo-400 font-bold flex items-center justify-center text-lg">
+              1
+            </div>
+            <h3 className="text-base font-semibold text-white">Citizen Report Submission</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Submit location pin, category, time, narrative, and photos. Option to remain 100% anonymous.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3 relative">
+            <div className="w-10 h-10 rounded-xl bg-purple-600/20 border border-purple-500/40 text-purple-400 font-bold flex items-center justify-center text-lg">
+              2
+            </div>
+            <h3 className="text-base font-semibold text-white">AI Assistant & Triage</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Automated AI analyzes category, risk score, and duplicate reports to streamline police review.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3 relative">
+            <div className="w-10 h-10 rounded-xl bg-sky-600/20 border border-sky-500/40 text-sky-400 font-bold flex items-center justify-center text-lg">
+              3
+            </div>
+            <h3 className="text-base font-semibold text-white">Authority Verification</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Verified law enforcement officers review details, update status, and post public advisories.
+            </p>
+          </div>
+
+          <div className="p-6 rounded-2xl bg-slate-900/70 border border-slate-800 space-y-3 relative">
+            <div className="w-10 h-10 rounded-xl bg-emerald-600/20 border border-emerald-500/40 text-emerald-400 font-bold flex items-center justify-center text-lg">
+              4
+            </div>
+            <h3 className="text-base font-semibold text-white">Odoo ERP Back-Office</h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Verified incidents create official tickets in Odoo Helpdesk for resource allocation and tracking.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Emergency Contact Banner */}
+      <section className="p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-rose-950/80 via-slate-900 to-indigo-950/80 border border-rose-900/40 flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className="space-y-2 text-center sm:text-left">
+          <div className="inline-flex items-center gap-2 text-xs font-bold text-rose-400 uppercase tracking-wider">
+            <PhoneCall className="w-4 h-4 animate-bounce" /> Immediate Danger Warning
+          </div>
+          <h3 className="text-lg sm:text-xl font-extrabold text-white">Is someone in immediate danger?</h3>
+          <p className="text-xs text-slate-300 max-w-xl">
+            SafeMap is a community reporting platform and is not a substitute for emergency services. In case of life-threatening emergencies, call emergency hotline 911 or 112 immediately.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <Button
+            variant="danger"
+            size="lg"
+            onClick={() => showToast('warning', 'Dialing emergency dispatch: 911 / 112', 'Emergency Services')}
+            className="font-bold shadow-lg"
+          >
+            Emergency 911 / 112
+          </Button>
+          <Button
+            variant="secondary"
+            size="lg"
+            onClick={() => setIsBlueprintOpen(true)}
+          >
+            Platform Info
+          </Button>
+        </div>
+      </section>
+
+      {/* Technical Overview Modal */}
       <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="SafeMap — Hackathon Implementation Plan"
-        description="Comprehensive 34-section blueprint summary"
+        isOpen={isBlueprintOpen}
+        onClose={() => setIsBlueprintOpen(false)}
+        title="SafeMap Public Safety Platform Architecture"
+        description="Core technical capabilities & specifications"
         maxWidth="lg"
         footer={
-          <Button variant="primary" size="sm" onClick={() => setIsModalOpen(false)}>
-            Close Overview
+          <Button variant="primary" size="sm" onClick={() => setIsBlueprintOpen(false)}>
+            Close Window
           </Button>
         }
       >
         <div className="space-y-3 text-xs text-slate-300 leading-relaxed">
           <p>
-            <strong>Role-Based Access:</strong> Guest (Public Map), Citizen (Submit & Track), Officer (Triage & Investigate), Admin (Management & Audit).
+            <strong>Role Gating:</strong> Citizen submissions remain in 'submitted' state until verified by authorized police personnel.
           </p>
           <p>
-            <strong>Real-Time Pipeline:</strong> Socket.IO rooms for targeted events ('user:id', 'officers', 'public') ensuring instant updates without page refreshes.
+            <strong>WebSockets & Socket.IO:</strong> Real-time map pins and status updates emit directly to active maps without page polling.
           </p>
           <p>
-            <strong>Geospatial Architecture:</strong> Leaflet + OpenStreetMap + Nominatim for zero-cost clustering, reverse geocoding, and privacy-shielded public mapping.
-          </p>
-          <p>
-            <strong>Odoo XML-RPC Bridge:</strong> Verified incidents sync automatically to Odoo Helpdesk for back-office SLA escalation and administrative resolution.
+            <strong>Odoo Helpdesk Integration:</strong> JSON-RPC integration automatically queues and creates official Odoo tickets with full two-way status sync.
           </p>
         </div>
       </Modal>
