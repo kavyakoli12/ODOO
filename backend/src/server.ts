@@ -20,15 +20,23 @@ const allowedOrigins = [
   env.CLIENT_ORIGIN,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
+  'http://localhost:5000',
 ].filter(Boolean);
+
+const isOriginAllowed = (origin: string | undefined): boolean => {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  if (origin.endsWith('.onrender.com')) return true;
+  if (env.NODE_ENV === 'production') return true;
+  return false;
+};
 
 // Initialize Socket.IO with CORS support
 export const io = new SocketIOServer(server, {
   cors: {
     origin: (origin, callback) => {
-      // Allow requests with no origin (curl, mobile apps, Render health checks)
-      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-      callback(new Error(`CORS blocked: ${origin}`));
+      if (isOriginAllowed(origin)) return callback(null, true);
+      callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST'],
@@ -55,8 +63,8 @@ app.use(
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-      callback(new Error(`CORS blocked: ${origin}`));
+      if (isOriginAllowed(origin)) return callback(null, true);
+      callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
