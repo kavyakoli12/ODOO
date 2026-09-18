@@ -13,6 +13,7 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { notFound } from './middleware/notFound.js';
 
 const app: Express = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 // Allowed origins: CLIENT_ORIGIN env var + localhost for dev
