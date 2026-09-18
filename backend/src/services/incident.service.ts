@@ -179,10 +179,27 @@ export function findCategoryBySlug(slug: string): SafeCategory {
   return found || DEFAULT_CATEGORIES[DEFAULT_CATEGORIES.length - 1]; // Default to 'Other'
 }
 
-function generateTrackingId(): string {
+async function generateTrackingId(): Promise<string> {
   const year = new Date().getFullYear();
-  const num = incidentCounter++;
-  return `INC-${year}-${num.toString().padStart(5, '0')}`;
+
+  if (isMongoConnected()) {
+    const count = await Incident.countDocuments();
+    let num = count + 1;
+    let candidate = `INC-${year}-${num.toString().padStart(5, '0')}`;
+    let exists = await Incident.exists({ trackingId: candidate });
+    while (exists) {
+      num++;
+      candidate = `INC-${year}-${num.toString().padStart(5, '0')}`;
+      exists = await Incident.exists({ trackingId: candidate });
+    }
+    return candidate;
+  }
+
+  let candidate = `INC-${year}-${(incidentCounter++).toString().padStart(5, '0')}`;
+  while (memoryIncidents.has(candidate)) {
+    candidate = `INC-${year}-${(incidentCounter++).toString().padStart(5, '0')}`;
+  }
+  return candidate;
 }
 
 export function toSafeIncident(doc: any, history: any[] = [], evidenceList: any[] = []): SafeIncident {
@@ -233,7 +250,7 @@ export function toSafeIncident(doc: any, history: any[] = [], evidenceList: any[
 
 export async function createIncident(data: CreateIncidentDTO, reporter: AuthUser): Promise<SafeIncident> {
   const category = findCategoryBySlug(data.categorySlug);
-  const trackingId = generateTrackingId();
+  const trackingId = await generateTrackingId();
   const now = new Date();
 
   // Validate incident date (cannot be > 5 mins in future)
