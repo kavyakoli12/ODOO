@@ -47,11 +47,18 @@ const createOfficerSchema = z.object({
 });
 
 // Helper to set HTTP-only refresh cookie
+function isSecureRequest(res: Response): boolean {
+  if (env.NODE_ENV === 'production' || process.env.NODE_ENV === 'production') return true;
+  const req = res.req;
+  if (!req) return false;
+  return req.secure || req.headers['x-forwarded-proto'] === 'https';
+}
+
+// Helper to set HTTP-only refresh cookie
 function setRefreshCookie(res: Response, token: string): void {
-  const isProd = env.NODE_ENV === 'production';
   res.cookie('refreshToken', token, {
     httpOnly: true,
-    secure: isProd,
+    secure: isSecureRequest(res),
     sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     path: '/',
@@ -60,10 +67,9 @@ function setRefreshCookie(res: Response, token: string): void {
 
 // Helper to clear refresh cookie
 function clearRefreshCookie(res: Response): void {
-  const isProd = env.NODE_ENV === 'production';
   res.clearCookie('refreshToken', {
     httpOnly: true,
-    secure: isProd,
+    secure: isSecureRequest(res),
     sameSite: 'lax',
     path: '/',
   });

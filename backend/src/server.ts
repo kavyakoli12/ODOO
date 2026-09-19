@@ -16,19 +16,20 @@ const app: Express = express();
 app.set('trust proxy', 1);
 const server = http.createServer(app);
 
-// Allowed origins: CLIENT_ORIGIN env var + localhost for dev
+// Allowed origins: CLIENT_ORIGIN env var, Render external URL, + localhost for dev
 const allowedOrigins = [
   env.CLIENT_ORIGIN,
+  process.env.RENDER_EXTERNAL_URL,
   'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://localhost:5000',
-].filter(Boolean);
+].filter(Boolean) as string[];
 
 const isOriginAllowed = (origin: string | undefined): boolean => {
   if (!origin) return true;
   if (allowedOrigins.includes(origin)) return true;
   if (origin.endsWith('.onrender.com')) return true;
-  if (env.NODE_ENV === 'production') return true;
+  if (env.NODE_ENV === 'production' || process.env.NODE_ENV === 'production') return true;
   return false;
 };
 
@@ -125,14 +126,16 @@ async function startServer(): Promise<void> {
   await seedDemoUsers();
 
   server.listen(env.PORT, () => {
+    const activeClient = process.env.RENDER_EXTERNAL_URL || env.CLIENT_ORIGIN;
+    const activeEnv = process.env.NODE_ENV || env.NODE_ENV;
     console.log(`
 🚀 ========================================================
    SafeMap Backend Service Running!
    --------------------------------------------------------
    📡 URL:          http://localhost:${env.PORT}
    🩺 Health:       http://localhost:${env.PORT}/api/v1/health
-   🌐 Client:       ${env.CLIENT_ORIGIN}
-   ⚙️  Environment:  ${env.NODE_ENV}
+   🌐 Client:       ${activeClient}
+   ⚙️  Environment:  ${activeEnv}
 ========================================================
     `);
   });
