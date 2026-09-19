@@ -58,7 +58,7 @@ export function CitizenDashboard() {
   const recentIncidents = incidents.slice(0, 3);
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-6 w-full">
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900/90 to-brand-950/30 border border-slate-800">
         <div>

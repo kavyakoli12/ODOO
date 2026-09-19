@@ -45,28 +45,27 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
     <header className="sticky top-0 z-40 w-full glass-nav">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Brand Logo */}
+          {/* Brand Logo & Slide-out Menu Trigger */}
           <div className="flex items-center gap-3">
             {onToggleSidebar && (
               <button
+                type="button"
                 onClick={onToggleSidebar}
-                className="lg:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                aria-label="Toggle Navigation Drawer"
+                className="p-2 -ml-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <Menu className="w-5 h-5" />
               </button>
             )}
             <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-600/30 group-hover:scale-105 transition-transform duration-200">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-600/30 group-hover:scale-105 transition-transform duration-200 shrink-0">
                 <Shield className="w-5 h-5 text-white" />
               </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-lg tracking-tight text-white flex items-center gap-1.5">
+              <div className="flex flex-col justify-center">
+                <span className="font-bold text-lg tracking-tight text-white leading-tight">
                   Safe<span className="text-brand-400">Map</span>
-                  <span className="text-[10px] px-1.5 py-0.2 font-semibold bg-brand-500/20 text-brand-300 border border-brand-500/30 rounded">
-                    ODDO HACK
-                  </span>
                 </span>
-                <span className="text-[10px] text-slate-400 -mt-1 hidden sm:inline">
+                <span className="text-[10px] text-slate-400 leading-tight hidden sm:inline">
                   Real-Time Incident Reporting
                 </span>
               </div>

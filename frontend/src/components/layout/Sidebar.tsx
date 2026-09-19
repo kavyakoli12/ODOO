@@ -1,7 +1,19 @@
+import { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
-import { Shield, Map, Inbox, BarChart2, Bell, X, PlusCircle, Users, LogOut, Layers } from 'lucide-react';
+import {
+  Shield,
+  Map,
+  Inbox,
+  BarChart2,
+  Bell,
+  X,
+  PlusCircle,
+  Users,
+  LogOut,
+  Layers,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button, useToast } from '@/components/ui';
 
@@ -18,6 +30,34 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
   const { showToast } = useToast();
 
   const effectiveRole = role || user?.role || 'citizen';
+
+  // Automatically close sidebar when navigating to a new path
+  useEffect(() => {
+    onClose();
+  }, [location.pathname]);
+
+  // Close sidebar on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Lock body scrolling when sidebar drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   const handleLogout = async () => {
     try {
@@ -38,10 +78,9 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
     { label: 'Safety Alerts', path: '/safety-alerts', icon: <Bell className="w-4 h-4" /> },
   ];
 
-
   const officerLinks = [
     { label: 'Incident Triage Queue', path: '/officer', icon: <Inbox className="w-4 h-4" /> },
-    { label: 'Tactical Crime Map', path: '/officer/map', icon: <Map className="w-4 h-4" /> },
+    { label: 'Tactical Crime Map', path: '/map', icon: <Map className="w-4 h-4" /> },
     { label: 'Active Investigations', path: '/officer/investigations', icon: <Shield className="w-4 h-4" /> },
     { label: 'Crime Trend Analytics', path: '/officer/analytics', icon: <BarChart2 className="w-4 h-4" /> },
     { label: 'Emergency Alerts', path: '/officer/alerts', icon: <Bell className="w-4 h-4" /> },
@@ -64,46 +103,69 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile Backdrop */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
-          onClick={onClose}
-        />
-      )}
+      {/* Backdrop overlay (applies on both desktop and mobile) */}
+      <div
+        className={cn(
+          'fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity duration-300',
+          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        )}
+        onClick={onClose}
+        aria-hidden="true"
+      />
 
-      {/* Sidebar Panel */}
+      {/* Slide-out Drawer Panel */}
       <aside
         className={cn(
-          'fixed top-16 bottom-0 left-0 z-40 w-64 bg-slate-950/90 border-r border-slate-800/80 p-4 transition-transform duration-200 lg:translate-x-0 overflow-y-auto flex flex-col justify-between',
+          'fixed top-0 bottom-0 left-0 z-50 w-72 sm:w-80 bg-slate-950/95 border-r border-slate-800/80 p-5 shadow-2xl backdrop-blur-xl transition-transform duration-300 ease-out flex flex-col justify-between overflow-y-auto',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navigation drawer"
       >
-        <div className="space-y-4">
-          <div className="flex items-center justify-between lg:hidden pb-2 border-b border-slate-800">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              {effectiveRole} Navigation
-            </span>
-            <button onClick={onClose} className="p-1 text-slate-400 hover:text-white">
+        <div className="space-y-5">
+          {/* Top Branding & Close Button */}
+          <div className="flex items-center justify-between pb-4 border-b border-slate-800/80">
+            <Link to="/" onClick={onClose} className="flex items-center gap-2.5 group">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-600/30 group-hover:scale-105 transition-transform duration-200 shrink-0">
+                <Shield className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex flex-col justify-center">
+                <span className="font-bold text-base tracking-tight text-white leading-tight">
+                  Safe<span className="text-brand-400">Map</span>
+                </span>
+                <span className="text-[10px] text-slate-400 leading-tight">
+                  Incident Reporting
+                </span>
+              </div>
+            </Link>
+
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500"
+              aria-label="Close navigation"
+            >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="px-3 py-2.5 rounded-lg bg-slate-900/80 border border-slate-800/80">
+          {/* User Status Card */}
+          <div className="px-3.5 py-3 rounded-xl bg-slate-900/90 border border-slate-800">
             <div className="text-[10px] uppercase font-semibold text-slate-400 tracking-wider">
               Signed in User
             </div>
-            <div className="text-xs font-bold text-white mt-0.5 truncate">
+            <div className="text-sm font-bold text-white mt-0.5 truncate">
               {user ? user.name : 'Guest User'}
             </div>
-            <div className="flex items-center justify-between mt-1">
-              <span className="text-[10px] text-slate-400 capitalize">{effectiveRole} Portal</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-brand-500/20 text-brand-300 font-medium">
+            <div className="flex items-center justify-between mt-1.5">
+              <span className="text-[11px] text-slate-400 capitalize">{effectiveRole} Portal</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">
                 Active
               </span>
             </div>
           </div>
 
+          {/* Navigation Links */}
           <nav className="space-y-1">
             {links.map((link) => {
               const isActive = location.pathname === link.path;
@@ -113,13 +175,15 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
                   to={link.path}
                   onClick={onClose}
                   className={cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors',
+                    'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all duration-150',
                     isActive
-                      ? 'bg-brand-600 text-white shadow-md shadow-brand-600/20'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                      ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/30 font-semibold'
+                      : 'text-slate-300 hover:text-white hover:bg-slate-900/80'
                   )}
                 >
-                  {link.icon}
+                  <span className={cn(isActive ? 'text-white' : 'text-slate-400')}>
+                    {link.icon}
+                  </span>
                   {link.label}
                 </Link>
               );
@@ -127,25 +191,15 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
           </nav>
         </div>
 
-        {/* Footer info & Logout */}
-        <div className="pt-4 border-t border-slate-800/80 space-y-3">
-          <div className="p-2.5 rounded-lg bg-indigo-950/30 border border-indigo-800/30 text-[11px] text-indigo-300">
-            <div className="font-semibold flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400" />
-              Odoo XML-RPC Sync
-            </div>
-            <p className="text-[10px] text-slate-400 mt-0.5">
-              Verified incidents queue ready for Odoo Helpdesk dispatch.
-            </p>
-          </div>
-
+        {/* Bottom Section: Logout Only (Unwanted Odoo promotional card removed) */}
+        <div className="pt-4 border-t border-slate-800/80">
           {user && (
             <Button
               size="sm"
               variant="outline"
-              className="w-full text-slate-300 hover:text-rose-300 hover:border-rose-700/50"
+              className="w-full justify-center text-slate-300 hover:text-rose-300 hover:border-rose-700/50 hover:bg-rose-950/20"
               onClick={handleLogout}
-              leftIcon={<LogOut className="w-3.5 h-3.5" />}
+              leftIcon={<LogOut className="w-4 h-4 text-slate-400" />}
             >
               Log Out
             </Button>

@@ -33,7 +33,7 @@ import { AdminDashboard } from '@/pages/admin/AdminDashboard';
 
 function AppContent() {
   const location = useLocation();
-  const { initAuth, isAuthenticated } = useAuthStore();
+  const { initAuth, isAuthenticated, user } = useAuthStore();
 
   useEffect(() => {
     initAuth();
@@ -48,13 +48,13 @@ function AppContent() {
     }
   }, [isAuthenticated]);
 
-  // Determine if sidebar should be shown and which role perspective to render
+  // Enable slide-out navigation for all authenticated users or portal routes
   const isCitizenRoute = location.pathname.startsWith('/citizen');
   const isOfficerRoute = location.pathname.startsWith('/officer');
   const isAdminRoute = location.pathname.startsWith('/admin');
-  const showSidebar = isCitizenRoute || isOfficerRoute || isAdminRoute;
+  const showSidebar = isAuthenticated || isCitizenRoute || isOfficerRoute || isAdminRoute;
 
-  const currentRole = isAdminRoute ? 'admin' : isOfficerRoute ? 'officer' : 'citizen';
+  const currentRole = user?.role || (isAdminRoute ? 'admin' : isOfficerRoute ? 'officer' : 'citizen');
 
   return (
     <>
