@@ -3,6 +3,7 @@ import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
 import { MobileBottomNav } from './MobileBottomNav';
 import { Footer } from './Footer';
+import { ProximityAlertManager } from '@/components/common/ProximityAlertManager';
 
 export interface AppShellProps {
   children: React.ReactNode;
@@ -15,6 +16,9 @@ export function AppShell({ children, showSidebar = false, role = 'citizen' }: Ap
 
   return (
     <div className="min-h-screen flex flex-col bg-surface-dark text-slate-100 pb-16 lg:pb-0">
+      {/* Real-Time Proximity Geofencing Alerts (without page refresh) */}
+      <ProximityAlertManager />
+
       <Navbar onToggleSidebar={showSidebar ? () => setIsSidebarOpen(!isSidebarOpen) : undefined} />
 
       <div className="flex-1 flex">

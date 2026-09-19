@@ -859,6 +859,34 @@ export async function getMapIncidents(filters: MapFiltersDTO): Promise<SafeMapIn
   return results.slice(0, limit).map((inc) => toSafeMapIncident(inc));
 }
 
+export interface ProximityIncidentResult extends SafeMapIncident {
+  distanceMeters: number;
+  distanceKm: number;
+}
+
+export async function getProximityIncidents(
+  lat: number,
+  lng: number,
+  radiusKm: number = 1.0
+): Promise<ProximityIncidentResult[]> {
+  const mapIncidents = await getMapIncidents({ lat, lng, radiusKm: Math.max(0.1, radiusKm) });
+
+  const enriched: ProximityIncidentResult[] = mapIncidents.map((inc) => {
+    const incLng = inc.location.coordinates[0];
+    const incLat = inc.location.coordinates[1];
+    const distKm = haversineDistanceKm(lat, lng, incLat, incLng);
+    return {
+      ...inc,
+      distanceKm: Math.round(distKm * 100) / 100,
+      distanceMeters: Math.round(distKm * 1000),
+    };
+  });
+
+  return enriched
+    .filter((inc) => inc.distanceKm <= radiusKm)
+    .sort((a, b) => a.distanceMeters - b.distanceMeters);
+}
+
 // ---------------------------------------------------------------------------
 // Phase 5: Authority Dashboard & Incident Review
 // ---------------------------------------------------------------------------

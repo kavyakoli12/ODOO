@@ -5,9 +5,25 @@ import {
   summarizeReport,
   suggestPriority,
   queryNaturalLanguageAnalytics,
+  analyzeCrimeImage,
 } from '../services/ai.service.js';
 
 export const aiRouter = Router();
+
+// POST /api/v1/ai/analyze-crime — camera scene scanning & verification
+aiRouter.post('/analyze-crime', async (req, res) => {
+  try {
+    const { imageBase64 = '', mimeType = 'image/jpeg', visualHints } = req.body;
+    if (!imageBase64 || imageBase64.length < 50) {
+      return res.status(400).json({ success: false, error: 'Valid image payload is required' });
+    }
+
+    const analysis = await analyzeCrimeImage(imageBase64, mimeType, visualHints);
+    res.json({ success: true, data: analysis });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // POST /api/v1/ai/categorize — public & authority
 aiRouter.post('/categorize', async (req, res) => {

@@ -7,6 +7,7 @@ import {
   getIncidentByIdController,
   uploadEvidenceController,
   getMapIncidentsController,
+  getProximityIncidentsController,
   getOfficerQueueController,
   getOfficerIncidentDetailController,
   reviewIncidentController,
@@ -16,6 +17,9 @@ import { authorize } from '../middleware/authorize.middleware.js';
 import { evidenceUpload } from '../middleware/upload.js';
 
 export const incidentRouter = Router();
+
+// Proximity & Geofencing Danger Incidents Endpoint (public / real-time monitoring)
+incidentRouter.get('/proximity', getProximityIncidentsController);
 
 // Public Map Incidents Endpoint (with privacy anonymization)
 incidentRouter.get('/map', getMapIncidentsController);

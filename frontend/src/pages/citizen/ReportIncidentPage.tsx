@@ -11,6 +11,8 @@ import {
   X,
   FileText,
   EyeOff,
+  Camera,
+  Sparkles,
 } from 'lucide-react';
 import {
   Button,
@@ -27,6 +29,7 @@ import {
   LoadingSpinner,
 } from '@/components/ui';
 import { LocationPicker } from '@/components/incidents/LocationPicker';
+import { AICrimeCameraModal, AICrimeAnalysisResult, LocationData } from '@/components/incidents/AICrimeCameraModal';
 import type { IncidentCategory, Incident } from '@/types/incident';
 import { toLocalDateTimeString } from '@/lib/utils';
 
@@ -55,6 +58,87 @@ export function ReportIncidentPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedIncident, setSubmittedIncident] = useState<Incident | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // AI Crime Camera State
+  const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+  const [aiVerificationData, setAiVerificationData] = useState<{
+    confidence: number;
+    category: string;
+    indicators: string[];
+  } | null>(null);
+
+  const handleAICameraAutoFill = (
+    analysis: AICrimeAnalysisResult,
+    file: File,
+    previewUrl: string,
+    locData?: LocationData
+  ) => {
+    setTitle(analysis.title);
+    setDescription(analysis.description);
+    setSeverity(analysis.severity);
+
+    // Match category slug from available categories
+    let matched = categories.find(
+      (c) =>
+        c.slug.toLowerCase() === analysis.categorySlug.toLowerCase() ||
+        c.name.toLowerCase().includes(analysis.categorySlug.toLowerCase())
+    );
+    if (!matched && (analysis.categorySlug === 'other' || !analysis.isCrimeOrHazard)) {
+      matched = categories.find((c) => c.slug === 'suspicious-activity' || c.slug === 'other');
+    }
+    if (matched) {
+      setCategorySlug(matched.slug);
+    } else if (categories.length > 0) {
+      setCategorySlug(categories[0].slug);
+    }
+
+    // Attach captured camera image directly into the evidence section
+    setEvidenceFile(file);
+    setEvidencePreview(previewUrl);
+
+    // Set precise location & address from GPS locData if already resolved
+    if (locData && locData.address) {
+      setLatitude(locData.lat);
+      setLongitude(locData.lng);
+      setAddress(locData.address);
+    } else if ('geolocation' in navigator) {
+      // Fetch device GPS and reverse geocode immediately
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setLatitude(lat);
+          setLongitude(lng);
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
+              { headers: { 'Accept-Language': 'en' } }
+            );
+            if (res.ok) {
+              const data = await res.json();
+              if (data.display_name) {
+                setAddress(data.display_name);
+              }
+            }
+          } catch {}
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    }
+
+    setAiVerificationData({
+      confidence: analysis.confidence,
+      category: analysis.category,
+      indicators: analysis.indicators,
+    });
+
+    showToast(
+      'success',
+      `Crime scene verified (${analysis.confidence}% confidence). Form auto-filled with GPS location & photo attached to evidence.`,
+      'AI Crime Scan Complete'
+    );
+  };
 
   useEffect(() => {
     const fetchCats = async () => {
@@ -233,6 +317,68 @@ export function ReportIncidentPage() {
           </Button>
         </Link>
       </div>
+
+      {/* Trinetra AI Crime Camera Scanner Banner */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/60 via-slate-900 to-brand-950/60 border border-red-500/40 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0 mt-0.5 shadow-md shadow-red-900/30">
+            <Camera className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-white uppercase tracking-wider">
+                Trinetra AI Vision Eye
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/30 flex items-center gap-1">
+                <Sparkles className="w-2.5 h-2.5" />
+                AUTO-COMPLAIN
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-1 leading-relaxed max-w-xl">
+              Point your camera at the scene. Trinetra AI automatically analyzes the crime, verifies visual indicators, auto-fills the report fields, and attaches the captured photo into the evidence section.
+            </p>
+          </div>
+        </div>
+
+        <Button
+          type="button"
+          variant="primary"
+          size="md"
+          leftIcon={<Camera className="w-4 h-4 text-white" />}
+          rightIcon={<Sparkles className="w-3.5 h-3.5 text-amber-300" />}
+          onClick={() => setIsCameraModalOpen(true)}
+          className="bg-gradient-to-r from-red-600 to-brand-600 hover:from-red-500 hover:to-brand-500 text-white font-bold shrink-0 shadow-lg shadow-red-600/30"
+        >
+          Scan Crime with AI Camera
+        </Button>
+      </div>
+
+      {/* AI Verification Confirmation Alert (if auto-filled) */}
+      {aiVerificationData && (
+        <div className="p-3.5 rounded-xl bg-emerald-950/50 border border-emerald-500/40 text-xs text-emerald-300 flex items-center justify-between gap-3 animate-in fade-in duration-300">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <div>
+              <div className="font-bold text-white flex items-center gap-2">
+                AI Crime Scene Verified
+                <span className="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  {aiVerificationData.confidence}% Confidence
+                </span>
+              </div>
+              <p className="text-emerald-200/80 text-[11px] mt-0.5">
+                Category: <strong>{aiVerificationData.category}</strong>. Details auto-filled and camera photo attached to evidence below.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAiVerificationData(null)}
+            className="text-slate-400 hover:text-white text-xs"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* Unverified Incident Notice Banner */}
       <div className="p-3.5 rounded-xl bg-indigo-950/30 border border-indigo-700/30 text-xs text-indigo-300 flex items-start gap-3">
@@ -470,6 +616,13 @@ export function ReportIncidentPage() {
           </CardFooter>
         </Card>
       </form>
+
+      {/* Trinetra AI Live Camera Modal */}
+      <AICrimeCameraModal
+        isOpen={isCameraModalOpen}
+        onClose={() => setIsCameraModalOpen(false)}
+        onAutoFill={handleAICameraAutoFill}
+      />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   getCategories,
   addIncidentEvidence,
   getMapIncidents,
+  getProximityIncidents,
   MapFiltersDTO,
   getOfficerQueue,
   getOfficerIncidentDetail,
@@ -252,6 +253,39 @@ export async function getMapIncidentsController(req: Request, res: Response): Pr
     });
   }
 }
+
+export async function getProximityIncidentsController(req: Request, res: Response): Promise<void> {
+  try {
+    const lat = parseFloat(req.query.lat as string);
+    const lng = parseFloat(req.query.lng as string);
+
+    if (isNaN(lat) || isNaN(lng)) {
+      res.status(400).json({
+        success: false,
+        error: 'Valid lat and lng query parameters are required.',
+      });
+      return;
+    }
+
+    const radiusKm = req.query.radiusKm ? parseFloat(req.query.radiusKm as string) : 1.0;
+    const safeRadius = isNaN(radiusKm) ? 1.0 : Math.min(Math.max(radiusKm, 0.1), 50.0);
+
+    const incidents = await getProximityIncidents(lat, lng, safeRadius);
+
+    res.status(200).json({
+      success: true,
+      count: incidents.length,
+      radiusKm: safeRadius,
+      data: incidents,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve proximity danger incidents.',
+    });
+  }
+}
+
 
 // ---------------------------------------------------------------------------
 // Phase 5: Authority Dashboard & Incident Review Handlers
