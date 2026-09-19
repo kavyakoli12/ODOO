@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, useMap, useMapEvents } 
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { api } from '@/lib/api';
+import { MAP_TILE_CONFIG } from '@/lib/mapConfig';
 import { MapFilters } from '@/components/map/MapFilters';
 import { MarkerClusterGroup } from '@/components/map/MarkerClusterGroup';
 import { MapLegend } from '@/components/map/MapLegend';
@@ -366,9 +367,9 @@ export function PublicMapPage() {
           className="w-full h-full z-0"
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            maxZoom={19}
+            attribution={MAP_TILE_CONFIG.attribution}
+            url={MAP_TILE_CONFIG.url}
+            maxZoom={MAP_TILE_CONFIG.maxZoom}
           />
           <MapController targetView={targetView} incidents={visibleIncidents} />
           {userLocation && <UserLocationMarker position={userLocation} />}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
+import { MAP_TILE_CONFIG } from '@/lib/mapConfig';
 import {
   Shield,
   Clock,
@@ -284,8 +285,9 @@ export function IncidentReviewPage() {
                   className="w-full h-full"
                 >
                   <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                    attribution={MAP_TILE_CONFIG.attribution}
+                    url={MAP_TILE_CONFIG.url}
+                    maxZoom={MAP_TILE_CONFIG.maxZoom}
                   />
                   <Marker position={[lat, lng]} icon={mapIcon} />
                 </MapContainer>

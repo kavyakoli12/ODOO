@@ -35,6 +35,7 @@ import {
   Bot,
 } from 'lucide-react';
 import { api } from '@/lib/api';
+import { MAP_TILE_CONFIG } from '@/lib/mapConfig';
 
 interface AnalyticsData {
   summary: {
@@ -531,8 +532,9 @@ export function AnalyticsDashboard() {
             className="w-full h-full"
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+              attribution={MAP_TILE_CONFIG.attribution}
+              url={MAP_TILE_CONFIG.url}
+              maxZoom={MAP_TILE_CONFIG.maxZoom}
             />
             <MapCenterController center={mapCenter} />
 

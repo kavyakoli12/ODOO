@@ -4,12 +4,6 @@ import { useAuthStore } from '@/store/authStore';
 import {
   ToastProvider,
   LoadingSpinner,
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-  Badge,
 } from '@/components/ui';
 import { AlertBanner } from '@/components/ui/AlertBanner';
 import { AppShell } from '@/components/layout';
@@ -32,49 +26,10 @@ import { InvestigationDetailPage } from '@/pages/officer/InvestigationDetailPage
 import { AnalyticsDashboard } from '@/pages/officer/AnalyticsDashboard';
 import { AlertManagementPage } from '@/pages/officer/AlertManagementPage';
 import { OdooIntegrationDashboard } from '@/pages/officer/OdooIntegrationDashboard';
-import { ShieldCheck } from 'lucide-react';
 import { initSocket, disconnectSocket } from '@/lib/socket';
 
 
-function AdminPortalPlaceholder() {
-  const { user } = useAuthStore();
-
-  return (
-    <Card className="max-w-3xl mx-auto my-8 border-purple-500/30">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-purple-400" />
-            <CardTitle>System Administration Console</CardTitle>
-          </div>
-          <Badge variant="danger">ADMIN PRIVILEGED</Badge>
-        </div>
-        <CardDescription>
-          Master administrator: <strong>{user?.name}</strong> ({user?.email}). Full access to user management, officer provisioning, and audit logs.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
-            <div className="text-[11px] text-slate-400">Officer Provisioning</div>
-            <div className="text-sm font-semibold text-emerald-400 mt-0.5">Active</div>
-            <div className="text-[10px] text-slate-400">POST /api/v1/auth/officers</div>
-          </div>
-          <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
-            <div className="text-[11px] text-slate-400">System Monitoring</div>
-            <div className="text-sm font-semibold text-brand-300 mt-0.5">Active</div>
-            <div className="text-[10px] text-slate-400">Telemetry & Health API</div>
-          </div>
-          <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
-            <div className="text-[11px] text-slate-400">RBAC Enforcement</div>
-            <div className="text-sm font-semibold text-purple-400 mt-0.5">Enforced</div>
-            <div className="text-[10px] text-slate-400">Non-admins return 403</div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+import { AdminDashboard } from '@/pages/admin/AdminDashboard';
 
 function AppContent() {
   const location = useLocation();
@@ -211,10 +166,26 @@ function AppContent() {
               }
             />
             <Route
+              path="/officer/map"
+              element={
+                <ProtectedRoute allowedRoles={['officer', 'admin']}>
+                  <PublicMapPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/admin/*"
               element={
                 <ProtectedRoute allowedRoles={['admin']}>
-                  <AdminPortalPlaceholder />
+                  <AdminDashboard />
                 </ProtectedRoute>
               }
             />

@@ -59,6 +59,8 @@ app.use(
   helmet({
     contentSecurityPolicy: false, // Allows flexible development & Leaflet map tile rendering
     crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   })
 );
 

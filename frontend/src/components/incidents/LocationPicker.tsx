@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { MapPin, Navigation, Search, Loader2 } from 'lucide-react';
 import { Button, Input } from '@/components/ui';
+import { MAP_TILE_CONFIG } from '@/lib/mapConfig';
 import 'leaflet/dist/leaflet.css';
 
 // Fix Leaflet's default marker icon issue with bundlers
@@ -164,8 +165,9 @@ export function LocationPicker({ latitude, longitude, address, onChange }: Locat
           className="h-full w-full"
         >
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+            attribution={MAP_TILE_CONFIG.attribution}
+            url={MAP_TILE_CONFIG.url}
+            maxZoom={MAP_TILE_CONFIG.maxZoom}
           />
           <Marker position={[latitude, longitude]} icon={customMarkerIcon} />
           <MapClickHandler onSelect={handleMapClick} />
