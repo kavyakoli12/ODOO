@@ -122,6 +122,7 @@ export interface OfficerQueueStats {
 export interface OfficerQueueFilters {
   status?: string;
   category?: string;
+  department?: string;
   severity?: number;
   searchQuery?: string;
   sortBy?: 'date_desc' | 'date_asc' | 'severity_desc';
@@ -137,6 +138,7 @@ export interface OfficerReviewDTO {
 const memoryIncidents = new Map<string, any>();
 const memoryStatusHistory: any[] = [];
 const memoryEvidence: any[] = [];
+const memoryCustomCategories: SafeCategory[] = [];
 let incidentCounter = 1;
 
 function isMongoConnected(): boolean {
@@ -157,6 +159,72 @@ export const DEFAULT_CATEGORIES: SafeCategory[] = [
   { id: 'cat-10', name: 'Other Incident', slug: 'other', description: 'Other community public safety concerns', color: '#6B7280', icon: 'HelpCircle' },
 ];
 
+export interface CreateCategoryInput {
+  name: string;
+  slug?: string;
+  description?: string;
+  color?: string;
+  icon?: string;
+}
+
+export async function createCategory(input: CreateCategoryInput): Promise<SafeCategory> {
+  const name = input.name.trim();
+  const slug = (input.slug && input.slug.trim().length > 0)
+    ? input.slug.trim().toLowerCase()
+    : name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const description = (input.description || '').trim();
+  const color = input.color || '#4F46E5';
+  const icon = input.icon || 'AlertTriangle';
+
+  if (isMongoConnected()) {
+    // If collection is empty, seed defaults first so they are retained in MongoDB
+    const count = await IncidentCategory.countDocuments();
+    if (count === 0) {
+      const seedDocs = DEFAULT_CATEGORIES.map((cat, idx) => ({
+        name: cat.name,
+        slug: cat.slug,
+        description: cat.description,
+        color: cat.color,
+        icon: cat.icon,
+        isActive: true,
+        displayOrder: idx,
+      }));
+      await IncidentCategory.insertMany(seedDocs);
+    }
+
+    const created = await IncidentCategory.create({
+      name,
+      slug,
+      description,
+      color,
+      icon,
+      isActive: true,
+      displayOrder: (await IncidentCategory.countDocuments()) + 1,
+    });
+
+    return {
+      id: created._id.toString(),
+      name: created.name,
+      slug: created.slug,
+      description: created.description || '',
+      color: created.color,
+      icon: created.icon,
+    };
+  }
+
+  // Memory fallback
+  const newCat: SafeCategory = {
+    id: `cat-${Date.now()}`,
+    name,
+    slug,
+    description,
+    color,
+    icon,
+  };
+  memoryCustomCategories.push(newCat);
+  return newCat;
+}
+
 export async function getCategories(): Promise<SafeCategory[]> {
   if (isMongoConnected()) {
     const cats = await IncidentCategory.find({ isActive: true }).sort({ displayOrder: 1 }).exec();
@@ -171,12 +239,13 @@ export async function getCategories(): Promise<SafeCategory[]> {
       }));
     }
   }
-  return DEFAULT_CATEGORIES;
+  return [...DEFAULT_CATEGORIES, ...memoryCustomCategories];
 }
 
 export function findCategoryBySlug(slug: string): SafeCategory {
-  const found = DEFAULT_CATEGORIES.find((c) => c.slug === slug);
-  return found || DEFAULT_CATEGORIES[DEFAULT_CATEGORIES.length - 1]; // Default to 'Other'
+  const all = [...DEFAULT_CATEGORIES, ...memoryCustomCategories];
+  const found = all.find((c) => c.slug === slug);
+  return found || all[all.length - 1]; // Default to 'Other'
 }
 
 async function generateTrackingId(): Promise<string> {
@@ -798,28 +867,52 @@ export async function getOfficerQueue(filters: OfficerQueueFilters = {}): Promis
   stats: OfficerQueueStats;
   incidents: SafeIncident[];
 }> {
+  const isDeptRestricted = Boolean(
+    filters.department &&
+    filters.department.trim() !== '' &&
+    !['all', 'all departments', 'general patrol', 'general operations'].includes(filters.department.trim().toLowerCase())
+  );
+
+  const deptKeywords = isDeptRestricted
+    ? filters.department!.trim().toLowerCase().split(/[\s/-]+/).filter((w) => w.length > 2 && w !== 'incident' && w !== 'department')
+    : [];
+  const deptPattern = deptKeywords.length > 0 ? deptKeywords.join('|') : (filters.department ? filters.department.trim() : '');
+  const deptRegex = deptPattern ? new RegExp(deptPattern, 'i') : null;
+
   if (isMongoConnected()) {
-    // Calculate global queue statistics
-    const [statsResult] = await Incident.aggregate([
-      {
-        $group: {
-          _id: null,
-          newSubmitted: { $sum: { $cond: [{ $eq: ['$status', 'submitted'] }, 1, 0] } },
-          underReview: { $sum: { $cond: [{ $eq: ['$status', 'under_review'] }, 1, 0] } },
-          verified: { $sum: { $cond: [{ $eq: ['$status', 'verified'] }, 1, 0] } },
-          rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } },
-          totalActive: {
-            $sum: {
-              $cond: [
-                { $and: [{ $ne: ['$status', 'resolved'] }, { $ne: ['$status', 'rejected'] }] },
-                1,
-                0,
-              ],
-            },
+    const pipeline: any[] = [];
+    if (isDeptRestricted && deptRegex) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { categorySlug: deptRegex },
+            { categoryName: deptRegex },
+            { department: deptRegex },
+          ],
+        },
+      });
+    }
+
+    pipeline.push({
+      $group: {
+        _id: null,
+        newSubmitted: { $sum: { $cond: [{ $eq: ['$status', 'submitted'] }, 1, 0] } },
+        underReview: { $sum: { $cond: [{ $eq: ['$status', 'under_review'] }, 1, 0] } },
+        verified: { $sum: { $cond: [{ $eq: ['$status', 'verified'] }, 1, 0] } },
+        rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } },
+        totalActive: {
+          $sum: {
+            $cond: [
+              { $and: [{ $ne: ['$status', 'resolved'] }, { $ne: ['$status', 'rejected'] }] },
+              1,
+              0,
+            ],
           },
         },
       },
-    ]);
+    });
+
+    const [statsResult] = await Incident.aggregate(pipeline);
 
     const stats: OfficerQueueStats = statsResult
       ? {
@@ -831,29 +924,46 @@ export async function getOfficerQueue(filters: OfficerQueueFilters = {}): Promis
         }
       : { newSubmitted: 0, underReview: 0, verified: 0, rejected: 0, totalActive: 0 };
 
-    // Build filter query
-    const query: any = {};
+    // Build filter query conditions
+    const conditions: any[] = [];
+
+    if (isDeptRestricted && deptRegex) {
+      conditions.push({
+        $or: [
+          { categorySlug: deptRegex },
+          { categoryName: deptRegex },
+          { department: deptRegex },
+        ],
+      });
+    }
+
     if (filters.status && filters.status !== 'all') {
-      query.status = filters.status;
+      conditions.push({ status: filters.status });
     }
     if (filters.category && filters.category !== 'all') {
-      query.$or = [
-        { categorySlug: filters.category.toLowerCase() },
-        { categoryName: new RegExp(`^${filters.category}`, 'i') },
-      ];
+      conditions.push({
+        $or: [
+          { categorySlug: filters.category.toLowerCase() },
+          { categoryName: new RegExp(`^${filters.category}`, 'i') },
+        ],
+      });
     }
     if (filters.severity && filters.severity > 0) {
-      query.severity = { $gte: filters.severity };
+      conditions.push({ severity: { $gte: filters.severity } });
     }
     if (filters.searchQuery && filters.searchQuery.trim()) {
       const q = filters.searchQuery.trim();
-      query.$or = [
-        { trackingId: new RegExp(q, 'i') },
-        { title: new RegExp(q, 'i') },
-        { address: new RegExp(q, 'i') },
-        { reporterName: new RegExp(q, 'i') },
-      ];
+      conditions.push({
+        $or: [
+          { trackingId: new RegExp(q, 'i') },
+          { title: new RegExp(q, 'i') },
+          { address: new RegExp(q, 'i') },
+          { reporterName: new RegExp(q, 'i') },
+        ],
+      });
     }
+
+    const query = conditions.length > 0 ? { $and: conditions } : {};
 
     // Sort order
     let sortOptions: any = { incidentDate: -1 };
@@ -872,7 +982,15 @@ export async function getOfficerQueue(filters: OfficerQueueFilters = {}): Promis
   // Memory Fallback
   seedInitialDemoIncidents();
 
-  const allIncidents = Array.from(memoryIncidents.values());
+  let allIncidents = Array.from(memoryIncidents.values());
+  if (isDeptRestricted && deptRegex) {
+    allIncidents = allIncidents.filter(
+      (i) =>
+        (i.categorySlug && deptRegex.test(i.categorySlug)) ||
+        (i.categoryName && deptRegex.test(i.categoryName)) ||
+        (i.title && deptRegex.test(i.title))
+    );
+  }
 
   const stats: OfficerQueueStats = {
     newSubmitted: allIncidents.filter((i) => i.status === 'submitted').length,

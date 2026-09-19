@@ -101,8 +101,30 @@ function isMongoConnected(): boolean {
   return mongoose.connection.readyState === 1;
 }
 
-function generateCaseNumber(): string {
+async function generateCaseNumberAsync(): Promise<string> {
   const year = new Date().getFullYear();
+  if (isMongoConnected()) {
+    try {
+      const highest = await Investigation.findOne({
+        caseNumber: new RegExp(`^INV-${year}-`),
+      })
+        .sort({ caseNumber: -1 })
+        .select('caseNumber')
+        .lean()
+        .exec();
+
+      if (highest && highest.caseNumber) {
+        const match = highest.caseNumber.match(/INV-\d{4}-(\d+)/);
+        if (match && match[1]) {
+          const nextVal = parseInt(match[1], 10) + 1;
+          caseCounter = Math.max(caseCounter, nextVal + 1);
+          return `INV-${year}-${nextVal.toString().padStart(5, '0')}`;
+        }
+      }
+    } catch (e) {
+      // fallback to memory sequence
+    }
+  }
   const num = caseCounter++;
   return `INV-${year}-${num.toString().padStart(5, '0')}`;
 }
@@ -361,7 +383,7 @@ export async function createInvestigation(
   officer: AuthUser
 ): Promise<SafeInvestigation> {
   const now = new Date();
-  const caseNumber = generateCaseNumber();
+  let caseNumber = await generateCaseNumberAsync();
 
   // Find lead officer details
   let leadOfficerId = data.leadOfficerId || officer.id;
@@ -400,19 +422,34 @@ export async function createInvestigation(
 
   // MongoDB Implementation
   if (isMongoConnected()) {
-    const newInvestigation = await Investigation.create({
-      caseNumber,
-      incidentIds: [new mongoose.Types.ObjectId(data.incidentId)],
-      title: data.title.trim(),
-      description: data.description.trim(),
-      status,
-      priority,
-      leadOfficerId: new mongoose.Types.ObjectId(leadOfficerId),
-      leadOfficerName,
-      teamMemberIds: [],
-      internalNotes: initialNotes,
-      timeline: [initialTimeline],
-    });
+    let newInvestigation: any;
+    let attempts = 0;
+    while (attempts < 5) {
+      try {
+        newInvestigation = await Investigation.create({
+          caseNumber,
+          incidentIds: [new mongoose.Types.ObjectId(data.incidentId)],
+          title: data.title.trim(),
+          description: data.description.trim(),
+          status,
+          priority,
+          leadOfficerId: new mongoose.Types.ObjectId(leadOfficerId),
+          leadOfficerName,
+          teamMemberIds: [],
+          internalNotes: initialNotes,
+          timeline: [initialTimeline],
+        });
+        break;
+      } catch (err: any) {
+        if (err.code === 11000 && attempts < 4) {
+          attempts++;
+          const year = new Date().getFullYear();
+          caseNumber = `INV-${year}-${(caseCounter++).toString().padStart(5, '0')}`;
+          continue;
+        }
+        throw err;
+      }
+    }
 
     // Update the linked Incident status and investigation link
     if (mongoose.Types.ObjectId.isValid(data.incidentId)) {

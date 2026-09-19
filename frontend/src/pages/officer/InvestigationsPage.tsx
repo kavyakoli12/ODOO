@@ -495,7 +495,7 @@ export function InvestigationsPage() {
               >
                 {verifiedIncidents.map((inc) => (
                   <option key={inc.id} value={inc.id}>
-                    [{inc.trackingId}] {inc.title} — {inc.categoryName} ({inc.address})
+                    {inc.reporterName || (inc.isAnonymous ? 'Anonymous' : 'Registered Citizen')} | [{inc.trackingId}] {inc.title} | {inc.address}
                   </option>
                 ))}
               </select>

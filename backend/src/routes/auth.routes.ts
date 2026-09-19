@@ -6,6 +6,8 @@ import {
   logout,
   getMe,
   createOfficer,
+  getCitizensController,
+  updateUserStatusController,
 } from '../controllers/auth.controller.js';
 import { authenticate } from '../middleware/auth.middleware.js';
 import { authorize } from '../middleware/authorize.middleware.js';
@@ -22,5 +24,8 @@ authRouter.post('/logout', logout);
 // Authenticated User Profile
 authRouter.get('/me', authenticate, getMe);
 
-// Admin-only Officer Creation
+// Admin-only User & Officer Management
 authRouter.post('/officers', authenticate, authorize('admin'), createOfficer);
+authRouter.get('/citizens', authenticate, authorize('admin'), getCitizensController);
+authRouter.patch('/users/:id/status', authenticate, authorize('admin'), updateUserStatusController);
+

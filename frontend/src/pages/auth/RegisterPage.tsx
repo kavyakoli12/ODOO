@@ -46,7 +46,7 @@ export function RegisterPage() {
       if (res.data.success && res.data.user && res.data.accessToken) {
         const { user, accessToken } = res.data;
         setAuth(user, accessToken);
-        showToast('success', `Account created! Welcome to SafeMap, ${user.name}.`, 'Registration Success');
+        showToast('success', `Account created! Welcome to Trinetra, ${user.name}.`, 'Registration Success');
         navigate('/citizen', { replace: true });
       }
     } catch (err: any) {
@@ -67,10 +67,10 @@ export function RegisterPage() {
             <Shield className="w-6 h-6" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white">
-            Create Citizen Account
+            Create Trinetra Account
           </h1>
           <p className="text-xs text-slate-400">
-            Join SafeMap to report neighborhood incidents, track investigations, and receive alerts
+            Join Trinetra to report neighborhood incidents, track investigations, and receive alerts
           </p>
         </div>
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
 import { MobileBottomNav } from './MobileBottomNav';
+import { Footer } from './Footer';
 
 export interface AppShellProps {
   children: React.ReactNode;
@@ -30,17 +31,8 @@ export function AppShell({ children, showSidebar = false, role = 'citizen' }: Ap
             {children}
           </div>
 
-          {/* Clean footer */}
-          <footer className="border-t border-slate-800/80 py-4 px-6 text-center text-xs text-slate-500 mb-12 lg:mb-0">
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-2 max-w-7xl mx-auto">
-              <div>SafeMap Platform &copy; 2026 — Community Safety Platform</div>
-              <div className="flex items-center gap-4 text-slate-400">
-                <span>Real-Time Intelligence</span>
-                <span>•</span>
-                <span>Role-Based Triage</span>
-              </div>
-            </div>
-          </footer>
+          {/* Global About Us & Emergency Helplines Footer */}
+          <Footer />
         </main>
       </div>
 

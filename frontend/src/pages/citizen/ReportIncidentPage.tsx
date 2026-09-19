@@ -134,9 +134,11 @@ export function ReportIncidentPage() {
           const formData = new FormData();
           formData.append('file', evidenceFile);
           try {
-            await api.post(`/incidents/${newInc.id}/evidence`, formData);
+            await api.post(`/incidents/${newInc.id}/evidence`, formData, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            });
           } catch (evErr) {
-            console.warn('Evidence upload failed, but incident was saved');
+            console.warn('Evidence upload failed, but incident was saved', evErr);
           }
         }
 
@@ -170,7 +172,7 @@ export function ReportIncidentPage() {
           </h2>
 
           <p className="text-xs text-slate-400 max-w-md mx-auto mb-6 leading-relaxed">
-            Your incident report has been securely registered in the SafeMap system with initial status{' '}
+            Your incident report has been securely registered in the Trinetra system with initial status{' '}
             <strong className="text-slate-200">SUBMITTED</strong>. It has been placed in the triage queue for official verification.
           </p>
 

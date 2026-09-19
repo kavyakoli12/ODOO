@@ -31,8 +31,6 @@ import {
   MapPin,
   Flame,
   UserCheck,
-  Sparkles,
-  Bot,
 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { MAP_TILE_CONFIG } from '@/lib/mapConfig';
@@ -141,26 +139,6 @@ export function AnalyticsDashboard() {
 
   // Map analytics filter toggle: 'all' | 'citizen' | 'verified'
   const [mapLayerFilter, setMapLayerFilter] = useState<'all' | 'citizen' | 'verified'>('all');
-
-  // Natural Language AI Query Assistant State
-  const [nlQuery, setNlQuery] = useState('');
-  const [nlQueryResult, setNlQueryResult] = useState<any>(null);
-  const [isNlLoading, setIsNlLoading] = useState(false);
-
-  const handleNlQuery = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nlQuery.trim()) return;
-    setIsNlLoading(true);
-    try {
-      const res = await api.post('/ai/query-analytics', { query: nlQuery });
-      if (res.data.success) {
-        setNlQueryResult(res.data.data);
-        if (res.data.data.parsedIntent.categoryFilter) setCategory(res.data.data.parsedIntent.categoryFilter);
-        if (res.data.data.parsedIntent.areaFilter) setArea(res.data.data.parsedIntent.areaFilter);
-      }
-    } catch {}
-    setIsNlLoading(false);
-  };
 
   const fetchAnalytics = useCallback(async () => {
     setIsLoading(true);
@@ -273,53 +251,6 @@ export function AnalyticsDashboard() {
             Refresh Data
           </button>
         </div>
-      </div>
-
-      {/* Phase 12: Natural Language AI Analytics Assistant */}
-      <div className="p-4 rounded-2xl border border-indigo-500/30 bg-indigo-950/20 backdrop-blur space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-bold text-indigo-300">
-            <Sparkles className="w-4 h-4 text-indigo-400 animate-pulse" />
-            <span>AI Natural Language Analytics Query Assistant</span>
-          </div>
-          <span className="text-[10px] text-indigo-400 bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-500/30 font-semibold">
-            Ask in plain English
-          </span>
-        </div>
-
-        <form onSubmit={handleNlQuery} className="flex gap-2">
-          <div className="relative flex-1">
-            <input
-              type="text"
-              value={nlQuery}
-              onChange={(e) => setNlQuery(e.target.value)}
-              placeholder="e.g. 'Show theft incidents reported this month in Connaught Place'"
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-slate-700 bg-slate-900 text-white text-xs placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-            />
-            <Bot className="w-4 h-4 text-indigo-400 absolute left-3 top-3" />
-          </div>
-          <button
-            type="submit"
-            disabled={isNlLoading || !nlQuery.trim()}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold transition-all shadow-md"
-          >
-            {isNlLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-            Ask AI
-          </button>
-        </form>
-
-        {nlQueryResult && (
-          <div className="p-3 rounded-xl bg-slate-900/90 border border-indigo-500/30 text-xs space-y-2 animate-in fade-in duration-150">
-            <div className="text-slate-200 font-medium">{nlQueryResult.summaryText}</div>
-            <div className="flex items-center gap-2 flex-wrap text-[11px] text-slate-400">
-              {nlQueryResult.highlights?.map((h: string, idx: number) => (
-                <span key={idx} className="bg-indigo-950/60 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/20">
-                  ✓ {h}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Filter Toolbar */}

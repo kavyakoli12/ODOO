@@ -77,7 +77,7 @@ export function LoginPage() {
             <Shield className="w-6 h-6" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white">
-            Sign In to Safe<span className="text-brand-400">Map</span>
+            Sign In to Trinetra
           </h1>
           <p className="text-xs text-slate-400">
             Access your citizen reporting dashboard or law enforcement console

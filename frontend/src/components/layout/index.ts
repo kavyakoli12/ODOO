@@ -1,3 +1,5 @@
 export * from './Navbar';
 export * from './Sidebar';
 export * from './AppShell';
+export * from './Footer';
+

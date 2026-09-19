@@ -45,7 +45,7 @@ export class ErrorBoundary extends Component<Props, State> {
             onClick={() => window.location.reload()}
             leftIcon={<RefreshCw className="w-4 h-4" />}
           >
-            Reload SafeMap
+            Reload Trinetra
           </Button>
         </div>
       );

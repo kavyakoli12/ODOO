@@ -227,7 +227,7 @@ export async function seedDemoUsers(): Promise<void> {
 
 export async function getOfficers(): Promise<SafeUser[]> {
   if (isMongoConnected()) {
-    const users = await User.find({ role: { $in: ['officer', 'admin'] }, isActive: true }).exec();
+    const users = await User.find({ role: { $in: ['officer', 'admin'] } }).sort({ createdAt: -1 }).exec();
     return users.map((u) => toSafeUser(u));
   }
 
@@ -235,10 +235,50 @@ export async function getOfficers(): Promise<SafeUser[]> {
   await seedDemoUsers();
   const list: SafeUser[] = [];
   for (const user of memoryUsers.values()) {
-    if ((user.role === 'officer' || user.role === 'admin') && user.isActive !== false) {
+    if (user.role === 'officer' || user.role === 'admin') {
       list.push(toSafeUser(user));
     }
   }
   return list;
 }
+
+export async function getCitizens(): Promise<SafeUser[]> {
+  if (isMongoConnected()) {
+    const users = await User.find({ role: 'citizen' }).sort({ createdAt: -1 }).exec();
+    return users.map((u) => toSafeUser(u));
+  }
+
+  // Memory fallback
+  await seedDemoUsers();
+  const list: SafeUser[] = [];
+  for (const user of memoryUsers.values()) {
+    if (user.role === 'citizen') {
+      list.push(toSafeUser(user));
+    }
+  }
+  return list;
+}
+
+export async function setUserActiveStatus(userId: string, isActive: boolean): Promise<SafeUser | null> {
+  if (isMongoConnected()) {
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: { isActive } },
+      { new: true }
+    ).exec();
+    return user ? toSafeUser(user) : null;
+  }
+
+  // Memory fallback
+  for (const [email, user] of memoryUsers.entries()) {
+    const id = user._id ? user._id.toString() : user.id;
+    if (id === userId) {
+      user.isActive = isActive;
+      memoryUsers.set(email, user);
+      return toSafeUser(user);
+    }
+  }
+  return null;
+}
+
 

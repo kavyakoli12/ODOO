@@ -99,14 +99,20 @@ export function LocationPicker({ latitude, longitude, address, onChange }: Locat
     );
   };
 
-  const handleSearchAddress = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  const handleSearchAddress = async (e?: React.SyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!searchQuery.trim()) return;
 
     setIsGeocoding(true);
+    setSearchError(null);
     try {
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`,
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1&addressdetails=1`,
         { headers: { 'Accept-Language': 'en' } }
       );
       if (res.ok) {
@@ -116,12 +122,15 @@ export function LocationPicker({ latitude, longitude, address, onChange }: Locat
           const lat = parseFloat(first.lat);
           const lng = parseFloat(first.lon);
           onChange(lat, lng, first.display_name);
+          setSearchError(null);
         } else {
-          alert('Location not found. Please try another address or click directly on the map.');
+          setSearchError('Location not found. Try entering a city or landmark, or click on the map.');
         }
+      } else {
+        setSearchError('Could not reach geocoding service. Click directly on the map to place a pin.');
       }
     } catch (err) {
-      // Graceful fallback
+      setSearchError('Network error searching location. Click directly on the map.');
     } finally {
       setIsGeocoding(false);
     }
@@ -131,17 +140,34 @@ export function LocationPicker({ latitude, longitude, address, onChange }: Locat
     <div className="space-y-3">
       {/* Search & GPS Tool Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-        <form onSubmit={handleSearchAddress} className="flex-1 flex gap-2">
+        <div className="flex-1 flex gap-2">
           <Input
             placeholder="Search address or area (e.g. Connaught Place)..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              if (searchError) setSearchError(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSearchAddress();
+              }
+            }}
             leftIcon={<Search className="w-4 h-4" />}
           />
-          <Button type="submit" variant="secondary" size="sm" isLoading={isGeocoding}>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            isLoading={isGeocoding}
+            onClick={() => handleSearchAddress()}
+            className="shrink-0"
+          >
             Find
           </Button>
-        </form>
+        </div>
 
         <Button
           type="button"
@@ -155,6 +181,12 @@ export function LocationPicker({ latitude, longitude, address, onChange }: Locat
           Use My GPS
         </Button>
       </div>
+
+      {searchError && (
+        <div className="p-2 rounded-lg bg-rose-950/40 border border-rose-800/40 text-[11px] text-rose-300">
+          {searchError}
+        </div>
+      )}
 
       {/* Leaflet Interactive Map Container */}
       <div className="h-64 sm:h-80 w-full rounded-xl overflow-hidden border border-slate-700 shadow-inner relative z-0">

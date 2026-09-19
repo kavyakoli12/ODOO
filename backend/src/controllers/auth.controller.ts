@@ -8,6 +8,8 @@ import {
   handleFailedLogin,
   handleSuccessfulLogin,
   toSafeUser,
+  getCitizens,
+  setUserActiveStatus,
 } from '../services/user.service.js';
 import {
   generateAccessToken,
@@ -323,3 +325,76 @@ export async function createOfficer(req: Request, res: Response): Promise<void> 
     user: newOfficer,
   });
 }
+
+// Admin: Get list of registered citizens
+export async function getCitizensController(req: Request, res: Response): Promise<void> {
+  if (!req.user || req.user.role !== 'admin') {
+    res.status(403).json({ success: false, error: 'Administrative clearance required.' });
+    return;
+  }
+
+  try {
+    const citizens = await getCitizens();
+    res.status(200).json({
+      success: true,
+      count: citizens.length,
+      data: citizens,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve registered citizens.',
+    });
+  }
+}
+
+// Admin: Dismiss / Toggle Active Status for Officer or Citizen
+export async function updateUserStatusController(req: Request, res: Response): Promise<void> {
+  if (!req.user || req.user.role !== 'admin') {
+    res.status(403).json({ success: false, error: 'Administrative clearance required.' });
+    return;
+  }
+
+  const { id } = req.params;
+  const { isActive } = req.body;
+
+  if (typeof isActive !== 'boolean') {
+    res.status(400).json({
+      success: false,
+      error: 'Invalid isActive boolean value.',
+    });
+    return;
+  }
+
+  // Prevent admin from deactivating themselves
+  if (id === req.user.id && !isActive) {
+    res.status(400).json({
+      success: false,
+      error: 'Administrators cannot dismiss their own active account.',
+    });
+    return;
+  }
+
+  try {
+    const updated = await setUserActiveStatus(id, isActive);
+    if (!updated) {
+      res.status(404).json({
+        success: false,
+        error: 'User not found.',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: isActive ? 'User access restored.' : 'User dismissed and platform access revoked.',
+      user: updated,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update user status.',
+    });
+  }
+}
+

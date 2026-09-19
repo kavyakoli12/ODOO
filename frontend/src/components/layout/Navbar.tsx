@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
-import { Shield, MapPin, AlertTriangle, Menu, X, User, LogOut, LogIn, UserPlus } from 'lucide-react';
+import { Shield, AlertTriangle, Menu, X, LogOut, LogIn, UserPlus } from 'lucide-react';
 import { Button, Badge, useToast } from '@/components/ui';
 import { NotificationBell } from '@/components/ui/NotificationBell';
 
@@ -24,20 +24,19 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
     navigate('/login');
   };
 
-  const navLinks = [
-    { label: 'Public Map', path: '/map', icon: <MapPin className="w-4 h-4" /> },
-    { label: 'Safety Feed', path: '/safety', icon: <AlertTriangle className="w-4 h-4" /> },
-  ];
+  const isCitizen = isAuthenticated && user?.role === 'citizen';
 
-  if (isAuthenticated && user) {
-    if (user.role === 'citizen') {
-      navLinks.push({ label: 'Dashboard', path: '/citizen', icon: <User className="w-4 h-4" /> });
-      navLinks.push({ label: 'Report Incident', path: '/citizen/report', icon: <AlertTriangle className="w-4 h-4" /> });
-      navLinks.push({ label: 'My Reports', path: '/citizen/reports', icon: <Shield className="w-4 h-4" /> });
-    } else if (user.role === 'officer') {
-      navLinks.push({ label: 'Officer Dashboard', path: '/officer', icon: <Shield className="w-4 h-4" /> });
-    } else if (user.role === 'admin') {
-      navLinks.push({ label: 'Admin Console', path: '/admin', icon: <Shield className="w-4 h-4" /> });
+  const navLinks: Array<{ label: string; path: string; icon: React.ReactNode }> = [];
+
+  if (!isCitizen) {
+    navLinks.push({ label: 'Safety Feed', path: '/safety', icon: <AlertTriangle className="w-4 h-4" /> });
+
+    if (isAuthenticated && user) {
+      if (user.role === 'officer') {
+        navLinks.push({ label: 'Officer Dashboard', path: '/officer', icon: <Shield className="w-4 h-4" /> });
+      } else if (user.role === 'admin') {
+        navLinks.push({ label: 'Admin Console', path: '/admin', icon: <Shield className="w-4 h-4" /> });
+      }
     }
   }
 
@@ -63,10 +62,10 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
               </div>
               <div className="flex flex-col justify-center">
                 <span className="font-bold text-lg tracking-tight text-white leading-tight">
-                  Safe<span className="text-brand-400">Map</span>
+                  Trinetra
                 </span>
                 <span className="text-[10px] text-slate-400 leading-tight hidden sm:inline">
-                  Real-Time Incident Reporting
+                  Citizen Safety & Vigilance
                 </span>
               </div>
             </Link>
@@ -111,14 +110,16 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
                   </Badge>
                 </div>
 
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={handleLogout}
-                  leftIcon={<LogOut className="w-3.5 h-3.5 text-slate-400" />}
-                >
-                  Logout
-                </Button>
+                {!isCitizen && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleLogout}
+                    leftIcon={<LogOut className="w-3.5 h-3.5 text-slate-400" />}
+                  >
+                    Logout
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -136,15 +137,17 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="flex md:hidden">
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
-            >
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
+          {/* Mobile Menu Button (for guest/officer screens where sidebar is not the sole nav) */}
+          {(!isCitizen || !onToggleSidebar) && (
+            <div className="flex md:hidden">
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+              >
+                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

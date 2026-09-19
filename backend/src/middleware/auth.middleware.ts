@@ -8,6 +8,7 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   name: string;
+  department?: string;
 }
 
 declare global {
@@ -57,6 +58,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
       email: user.email,
       role: user.role,
       name: user.name,
+      department: user.department,
     };
 
     next();

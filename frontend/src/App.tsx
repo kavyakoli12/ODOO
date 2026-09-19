@@ -1,5 +1,5 @@
 import { Suspense, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation, Navigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import {
   ToastProvider,
@@ -30,6 +30,26 @@ import { initSocket, disconnectSocket } from '@/lib/socket';
 
 
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
+
+function IncidentRedirect() {
+  const { id } = useParams<{ id: string }>();
+  const { user, isAuthenticated } = useAuthStore();
+  if (!isAuthenticated) {
+    return <Navigate to={`/login?redirect=/citizen/reports/${id}`} replace />;
+  }
+  if (user?.role === 'officer' || user?.role === 'admin') {
+    return <Navigate to={`/officer/incidents/${id}`} replace />;
+  }
+  return <Navigate to={`/citizen/reports/${id}`} replace />;
+}
+
+function ReportRedirect() {
+  const { isAuthenticated } = useAuthStore();
+  if (!isAuthenticated) {
+    return <Navigate to="/login?redirect=/citizen/report" replace />;
+  }
+  return <Navigate to="/citizen/report" replace />;
+}
 
 function AppContent() {
   const location = useLocation();
@@ -62,7 +82,7 @@ function AppContent() {
       <AlertBanner />
 
       <AppShell showSidebar={showSidebar} role={currentRole}>
-        <Suspense fallback={<LoadingSpinner size="lg" label="Loading SafeMap..." className="min-h-[60vh]" />}>
+        <Suspense fallback={<LoadingSpinner size="lg" label="Loading Trinetra..." className="min-h-[60vh]" />}>
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<HomePage />} />
@@ -71,6 +91,8 @@ function AppContent() {
             <Route path="/map" element={<PublicMapPage />} />
             <Route path="/safety" element={<PublicMapPage />} />
             <Route path="/safety-alerts" element={<SafetyAlertsPage />} />
+            <Route path="/report" element={<ReportRedirect />} />
+            <Route path="/incidents/:id" element={<IncidentRedirect />} />
 
             {/* Citizen Protected Routes */}
             <Route

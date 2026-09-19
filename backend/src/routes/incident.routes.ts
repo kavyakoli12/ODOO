@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import {
   getCategoriesController,
+  createCategoryController,
   createIncidentController,
   getMyIncidentsController,
   getIncidentByIdController,
@@ -19,8 +20,10 @@ export const incidentRouter = Router();
 // Public Map Incidents Endpoint (with privacy anonymization)
 incidentRouter.get('/map', getMapIncidentsController);
 
-// Public / Authenticated category listing
+// Public / Authenticated category listing & Admin category creation
 incidentRouter.get('/categories', getCategoriesController);
+incidentRouter.post('/categories', authenticate, authorize('admin'), createCategoryController);
+
 
 // Authority Incident Triage Queue & Review Actions (Officer & Admin only)
 incidentRouter.get(

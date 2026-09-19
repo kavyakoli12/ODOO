@@ -9,6 +9,7 @@ import { MapFilters } from '@/components/map/MapFilters';
 import { MarkerClusterGroup } from '@/components/map/MarkerClusterGroup';
 import { MapLegend } from '@/components/map/MapLegend';
 import { useToast, Button, Badge, Sheet } from '@/components/ui';
+import { useAuthStore } from '@/store/authStore';
 import type { SafeMapIncident, MapFilterState } from '@/types/map';
 import type { IncidentCategory } from '@/types/incident';
 import {
@@ -26,14 +27,6 @@ import {
 // Default map center: New Delhi
 const DEFAULT_CENTER: [number, number] = [28.6139, 77.209];
 const DEFAULT_ZOOM = 13;
-
-// Quick jump landmark coordinates
-const QUICK_JUMPS = [
-  { name: 'Connaught Place', coords: [28.6315, 77.2167] as [number, number], zoom: 14 },
-  { name: 'India Gate', coords: [28.6129, 77.2295] as [number, number], zoom: 14 },
-  { name: 'Nehru Park', coords: [28.5915, 77.2005] as [number, number], zoom: 14 },
-  { name: 'Old Delhi', coords: [28.6562, 77.241] as [number, number], zoom: 14 },
-];
 
 function MapController({
   onBoundsChange,
@@ -128,15 +121,72 @@ function UserLocationMarker({ position }: { position: [number, number] }) {
   );
 }
 
+function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function SearchedLocationMarker({ position, label }: { position: [number, number]; label: string }) {
+  const icon = useMemo(
+    () =>
+      L.divIcon({
+        className: 'trinetra-searched-marker',
+        html: `
+        <div style="position: relative; width: 30px; height: 30px;">
+          <div style="position: absolute; inset: 0; border-radius: 50%; background: #F59E0B; opacity: 0.35; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+          <div style="position: absolute; inset: 3px; border-radius: 50%; background: #D97706; border: 2px solid #FFFFFF; box-shadow: 0 0 12px rgba(217,119,6,0.9); display: flex; align-items: center; justify-content: center;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </div>
+        </div>
+      `,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15],
+      }),
+    []
+  );
+
+  return (
+    <>
+      <Marker position={position} icon={icon}>
+        <Popup className="safemap-incident-popup">
+          <div className="p-2.5 text-xs text-white bg-slate-950 rounded-xl space-y-1">
+            <p className="font-bold text-amber-400">📍 Searched Location</p>
+            <p className="text-[11px] text-slate-300 leading-snug">{label}</p>
+          </div>
+        </Popup>
+      </Marker>
+      <Circle
+        center={position}
+        radius={2000}
+        pathOptions={{
+          fillColor: '#F59E0B',
+          fillOpacity: 0.08,
+          color: '#F59E0B',
+          weight: 1.5,
+          dashArray: '4, 8',
+        }}
+      />
+    </>
+  );
+}
+
 export function PublicMapPage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { user, isAuthenticated } = useAuthStore();
 
   const [incidents, setIncidents] = useState<SafeMapIncident[]>([]);
   const [categories, setCategories] = useState<IncidentCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [targetView, setTargetView] = useState<{ coords: [number, number]; zoom: number } | null>(null);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [searchedLocation, setSearchedLocation] = useState<{ coords: [number, number]; label: string } | null>(null);
   const [isLocating, setIsLocating] = useState(false);
 
   // Mobile View Toggle: 'map' vs 'list'
@@ -194,13 +244,15 @@ export function PublicMapPage() {
   const visibleIncidents = useMemo(() => {
     if (!filters.searchQuery.trim()) return incidents;
     const query = filters.searchQuery.toLowerCase().trim();
-    return incidents.filter(
+    const matching = incidents.filter(
       (inc) =>
         inc.title.toLowerCase().includes(query) ||
         inc.trackingId.toLowerCase().includes(query) ||
         inc.approximateAddress.toLowerCase().includes(query) ||
         inc.categoryName.toLowerCase().includes(query)
     );
+    // If text query matches specific incidents, show matching; if place name search matched 0 text fields, keep incidents visible!
+    return matching.length > 0 ? matching : incidents;
   }, [incidents, filters.searchQuery]);
 
   const handleLocateMe = () => {
@@ -230,6 +282,75 @@ export function PublicMapPage() {
     );
   };
 
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+
+  const handleLocationSearch = async (query: string) => {
+    const q = query.trim();
+    if (!q) {
+      setSearchedLocation(null);
+      return;
+    }
+
+    // 1. Check if an incident matches title, trackingId, category, or approximateAddress
+    const matchingInc = incidents.find(
+      (inc) =>
+        inc.title.toLowerCase().includes(q.toLowerCase()) ||
+        inc.trackingId.toLowerCase().includes(q.toLowerCase()) ||
+        inc.approximateAddress.toLowerCase().includes(q.toLowerCase()) ||
+        inc.categoryName.toLowerCase().includes(q.toLowerCase())
+    );
+
+    if (matchingInc) {
+      const [lng, lat] = matchingInc.location.coordinates;
+      setTargetView({ coords: [lat, lng], zoom: 16 });
+      setSelectedIncident(matchingInc);
+      showToast('info', `Found incident: [${matchingInc.trackingId}] ${matchingInc.title}`, 'Incident Found');
+      return;
+    }
+
+    // 2. Geocode location via OpenStreetMap Nominatim
+    setIsSearchingLocation(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&addressdetails=1`,
+        { headers: { 'Accept-Language': 'en' } }
+      );
+      if (res.ok) {
+        const results = await res.json();
+        if (results && results.length > 0) {
+          const lat = parseFloat(results[0].lat);
+          const lon = parseFloat(results[0].lon);
+          const placeLabel = results[0].display_name;
+          const shortName = placeLabel.split(',')[0];
+
+          setSearchedLocation({ coords: [lat, lon], label: placeLabel });
+          setTargetView({ coords: [lat, lon], zoom: 14 });
+
+          // Calculate nearby incidents within 30km
+          const nearby = incidents.filter((inc) => {
+            if (!inc.location?.coordinates || inc.location.coordinates.length < 2) return false;
+            const [iLon, iLat] = inc.location.coordinates;
+            return getDistanceKm(lat, lon, iLat, iLon) <= 30;
+          });
+
+          if (nearby.length > 0) {
+            showToast('success', `Moved to ${shortName}. ${nearby.length} incident(s) found in this sector.`, 'Location & Incidents Found');
+          } else {
+            showToast('info', `Moved to ${shortName}. Displaying all active incidents on map canvas.`, 'Location Found');
+          }
+        } else {
+          showToast('warning', `No place or incident found matching "${q}". Try another location.`, 'Search Results');
+        }
+      } else {
+        showToast('error', 'Geocoding service unavailable.', 'Search Error');
+      }
+    } catch (err) {
+      showToast('error', 'Failed to search location.', 'Search Error');
+    } finally {
+      setIsSearchingLocation(false);
+    }
+  };
+
   return (
     <div className="relative w-full h-[calc(100vh-4.5rem)] bg-slate-950 overflow-hidden select-none flex flex-col">
       {/* Floating Filter Controls Bar */}
@@ -239,6 +360,8 @@ export function PublicMapPage() {
         categories={categories}
         totalCount={visibleIncidents.length}
         isLoading={isLoading}
+        onSearchLocation={handleLocationSearch}
+        isSearchingLocation={isSearchingLocation}
       />
 
       {/* Floating View Switcher Button (Mobile view: Map vs List) */}
@@ -325,7 +448,7 @@ export function PublicMapPage() {
           </div>
         )}
 
-        {/* Floating Action Controls (Locate Me & Quick Landmark Jumps) */}
+        {/* Floating Action Controls (Locate Me / GPS) */}
         <div className="absolute top-24 md:top-36 left-4 z-[1000] flex flex-col gap-2">
           <button
             onClick={handleLocateMe}
@@ -339,21 +462,6 @@ export function PublicMapPage() {
               }`}
             />
           </button>
-
-          <div className="hidden lg:flex flex-col gap-1 p-1.5 rounded-xl bg-slate-950/90 backdrop-blur-md border border-slate-800 shadow-xl text-[10px]">
-            <span className="px-2 py-0.5 text-slate-500 font-semibold uppercase tracking-wider">
-              Quick Views
-            </span>
-            {QUICK_JUMPS.map((jump) => (
-              <button
-                key={jump.name}
-                onClick={() => setTargetView({ coords: jump.coords, zoom: jump.zoom })}
-                className="text-left px-2 py-1 rounded-md text-slate-300 hover:text-white hover:bg-slate-900/80 transition-colors truncate"
-              >
-                {jump.name}
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Map Legend Overlay */}
@@ -373,6 +481,7 @@ export function PublicMapPage() {
           />
           <MapController targetView={targetView} incidents={visibleIncidents} />
           {userLocation && <UserLocationMarker position={userLocation} />}
+          {searchedLocation && <SearchedLocationMarker position={searchedLocation.coords} label={searchedLocation.label} />}
           <MarkerClusterGroup
             incidents={visibleIncidents}
             onSelectIncident={(inc) => setSelectedIncident(inc)}
@@ -461,7 +570,16 @@ export function PublicMapPage() {
                 onClick={() => {
                   const id = selectedIncident.id;
                   setSelectedIncident(null);
-                  navigate(`/incidents/${id}`);
+                  if (!isAuthenticated) {
+                    showToast('info', 'Please sign in to view the full incident dossier and chat.', 'Login Required');
+                    navigate(`/login?redirect=/citizen/reports/${id}`);
+                    return;
+                  }
+                  if (user?.role === 'officer' || user?.role === 'admin') {
+                    navigate(`/officer/incidents/${id}`);
+                  } else {
+                    navigate(`/citizen/reports/${id}`);
+                  }
                 }}
                 rightIcon={<ExternalLink className="w-3.5 h-3.5" />}
               >

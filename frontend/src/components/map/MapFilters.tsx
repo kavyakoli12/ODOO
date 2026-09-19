@@ -19,6 +19,8 @@ interface MapFiltersProps {
   categories: IncidentCategory[];
   totalCount: number;
   isLoading?: boolean;
+  onSearchLocation?: (query: string) => void;
+  isSearchingLocation?: boolean;
 }
 
 export function MapFilters({
@@ -27,8 +29,11 @@ export function MapFilters({
   categories,
   totalCount,
   isLoading,
+  onSearchLocation,
+  isSearchingLocation,
 }: MapFiltersProps) {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState(filters.searchQuery);
 
   const hasActiveFilters =
     filters.category !== 'all' ||
@@ -37,34 +42,57 @@ export function MapFilters({
     filters.searchQuery.trim() !== '';
 
   const handleReset = () => {
+    setSearchInput('');
     onChange({
       category: 'all',
       status: 'all',
       timeRange: 'all',
       searchQuery: '',
     });
+    onSearchLocation?.('');
   };
 
   const filterContent = (
     <div className="space-y-4">
-      {/* Search Input */}
-      <div className="relative">
-        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-        <input
-          type="text"
-          value={filters.searchQuery}
-          onChange={(e) => onChange({ ...filters, searchQuery: e.target.value })}
-          placeholder="Search by title, location, or INC-ID..."
-          className="w-full pl-9 pr-8 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors"
-        />
-        {filters.searchQuery && (
-          <button
-            onClick={() => onChange({ ...filters, searchQuery: '' })}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-white"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
-        )}
+      {/* Search Input with explicit Find button and Enter support */}
+      <div className="relative flex items-center gap-1.5">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                onSearchLocation?.(searchInput);
+              }
+            }}
+            placeholder="Search address, landmark, area, or incident..."
+            className="w-full pl-9 pr-8 py-2 text-xs rounded-xl bg-slate-900/90 border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition-colors"
+          />
+          {searchInput && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchInput('');
+                onChange({ ...filters, searchQuery: '' });
+                onSearchLocation?.('');
+              }}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-white"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => onSearchLocation?.(searchInput)}
+          disabled={!searchInput.trim() || isSearchingLocation}
+          className="px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-500 disabled:opacity-40 text-white text-xs font-semibold shrink-0 transition-colors shadow-sm"
+        >
+          {isSearchingLocation ? 'Searching...' : 'Find'}
+        </button>
       </div>
 
       {/* Filter Selectors Grid */}

@@ -46,7 +46,7 @@ apiRouter.use('/ai', aiRouter);
 apiRouter.get('/', (_req: Request, res: Response) => {
   res.status(200).json({
     success: true,
-    message: 'Welcome to SafeMap API v1',
+    message: 'Welcome to Trinetra API v1',
     documentation: 'Refer to docs/api.md and implementation_plan.md',
     endpoints: {
       health: '/api/v1/health',

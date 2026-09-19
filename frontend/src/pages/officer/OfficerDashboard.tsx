@@ -237,6 +237,11 @@ export function OfficerDashboard() {
               <CardTitle className="text-base font-bold text-white flex items-center gap-2">
                 <Shield className="w-4 h-4 text-indigo-400" />
                 Incident Triage Queue
+                {user?.department && !['all', 'all departments', 'general patrol', 'general operations'].includes(user.department.toLowerCase()) && (
+                  <Badge variant="warning" className="text-[10px] font-normal">
+                    {user.department} Scope
+                  </Badge>
+                )}
               </CardTitle>
               <CardDescription className="text-xs text-slate-400">
                 Authorized law enforcement triage, incident verification, and status advancement.

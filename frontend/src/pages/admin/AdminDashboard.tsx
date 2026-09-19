@@ -8,18 +8,20 @@ import {
   BarChart2,
   Server,
   Database,
-  Lock,
   Plus,
   RefreshCw,
   ExternalLink,
-  Layers,
   Radio,
-  FileText,
   Clock,
   Shield,
   CheckCircle2,
   Inbox,
   UserPlus,
+  Eye,
+  EyeOff,
+  UserX,
+  Search,
+  Sparkles,
 } from 'lucide-react';
 import {
   Card,
@@ -30,6 +32,7 @@ import {
   Badge,
   Button,
   Input,
+  Select,
   useToast,
   LoadingSpinner,
 } from '@/components/ui';
@@ -41,17 +44,31 @@ interface Officer {
   role: string;
   badgeNumber?: string;
   department?: string;
+  isActive?: boolean;
+  createdAt?: string;
+}
+
+interface Citizen {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  isActive?: boolean;
+  phone?: string;
   createdAt?: string;
 }
 
 interface IncidentCategory {
   id: string;
   name: string;
-  code: string;
-  description: string;
-  severity: string;
-  defaultPriority: string;
-  slaResolutionHours: number;
+  slug: string;
+  code?: string;
+  description?: string;
+  severity?: string;
+  defaultPriority?: string;
+  slaResolutionHours?: number;
+  color?: string;
+  icon?: string;
 }
 
 interface SystemHealth {
@@ -72,23 +89,24 @@ export function AdminDashboard() {
   const { showToast } = useToast();
 
   // Determine active tab from URL path
-  const getTabFromPath = () => {
-    if (location.pathname.includes('/admin/users')) return 'users';
+  const getTabFromPath = (): 'overview' | 'officers' | 'citizens' | 'categories' => {
+    if (location.pathname.includes('/admin/users') || location.pathname.includes('/admin/officers')) return 'officers';
+    if (location.pathname.includes('/admin/citizens')) return 'citizens';
     if (location.pathname.includes('/admin/categories')) return 'categories';
-    if (location.pathname.includes('/admin/audit')) return 'audit';
     return 'overview';
   };
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'categories' | 'audit'>(getTabFromPath());
+  const [activeTab, setActiveTab] = useState<'overview' | 'officers' | 'citizens' | 'categories'>(getTabFromPath());
 
   // Sync tab with route changes
   useEffect(() => {
     setActiveTab(getTabFromPath());
   }, [location.pathname]);
 
-  const handleTabChange = (tab: 'overview' | 'users' | 'categories' | 'audit') => {
+  const handleTabChange = (tab: 'overview' | 'officers' | 'citizens' | 'categories') => {
     setActiveTab(tab);
     if (tab === 'overview') navigate('/admin');
+    else if (tab === 'officers') navigate('/admin/users');
     else navigate(`/admin/${tab}`);
   };
 
@@ -100,20 +118,42 @@ export function AdminDashboard() {
   const [officers, setOfficers] = useState<Officer[]>([]);
   const [officersLoading, setOfficersLoading] = useState(false);
 
+  // State: Citizens
+  const [citizens, setCitizens] = useState<Citizen[]>([]);
+  const [citizensLoading, setCitizensLoading] = useState(false);
+  const [citizenSearchQuery, setCitizenSearchQuery] = useState('');
+
   // State: Categories
   const [categories, setCategories] = useState<IncidentCategory[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
 
-  // State: New Officer Form
+  // State: Provision Officer Form
   const [showOfficerModal, setShowOfficerModal] = useState(false);
   const [isSubmittingOfficer, setIsSubmittingOfficer] = useState(false);
+  const [showOfficerPassword, setShowOfficerPassword] = useState(false);
   const [officerForm, setOfficerForm] = useState({
     name: '',
     email: '',
     password: '',
     badgeNumber: '',
-    department: 'Metropolitan Police Dept',
+    department: 'Traffic Incident',
   });
+
+  // State: Add Category Form
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [isSubmittingCategory, setIsSubmittingCategory] = useState(false);
+  const [categoryForm, setCategoryForm] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    severity: 'MEDIUM',
+    slaResolutionHours: 24,
+    color: '#3B82F6',
+    icon: 'AlertTriangle',
+  });
+
+  // State: User Status Updating ID
+  const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
   // Fetch Health
   const fetchHealth = async () => {
@@ -149,6 +189,21 @@ export function AdminDashboard() {
     }
   };
 
+  // Fetch Citizens
+  const fetchCitizens = async () => {
+    setCitizensLoading(true);
+    try {
+      const res = await api.get('/auth/citizens');
+      if (res.data?.data) {
+        setCitizens(res.data.data);
+      }
+    } catch (err) {
+      // Fallback
+    } finally {
+      setCitizensLoading(false);
+    }
+  };
+
   // Fetch Categories
   const fetchCategories = async () => {
     setCategoriesLoading(true);
@@ -167,6 +222,7 @@ export function AdminDashboard() {
   useEffect(() => {
     fetchHealth();
     fetchOfficers();
+    fetchCitizens();
     fetchCategories();
   }, []);
 
@@ -188,9 +244,10 @@ export function AdminDashboard() {
           email: '',
           password: '',
           badgeNumber: '',
-          department: 'Metropolitan Police Dept',
+          department: categories.length > 0 ? categories[0].name : 'Traffic Incident',
         });
         setShowOfficerModal(false);
+        setShowOfficerPassword(false);
         fetchOfficers();
       }
     } catch (err: any) {
@@ -200,6 +257,100 @@ export function AdminDashboard() {
       setIsSubmittingOfficer(false);
     }
   };
+
+  // Handle Creating Category (Admin Only)
+  const handleCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!categoryForm.name.trim()) {
+      showToast('error', 'Category name is required.', 'Validation Error');
+      return;
+    }
+
+    setIsSubmittingCategory(true);
+    try {
+      const res = await api.post('/incidents/categories', {
+        name: categoryForm.name.trim(),
+        slug: categoryForm.slug.trim() || undefined,
+        description: categoryForm.description.trim() || undefined,
+        severity: categoryForm.severity,
+        slaResolutionHours: Number(categoryForm.slaResolutionHours) || 24,
+        color: categoryForm.color,
+        icon: categoryForm.icon,
+      });
+
+      if (res.data.success) {
+        showToast('success', `Category "${categoryForm.name}" created! It is now active for citizen reports.`, 'Category Created');
+        setCategoryForm({
+          name: '',
+          slug: '',
+          description: '',
+          severity: 'MEDIUM',
+          slaResolutionHours: 24,
+          color: '#3B82F6',
+          icon: 'AlertTriangle',
+        });
+        setShowCategoryModal(false);
+        fetchCategories();
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.error || 'Failed to create incident category.';
+      showToast('error', msg, 'Creation Failed');
+    } finally {
+      setIsSubmittingCategory(false);
+    }
+  };
+
+  // Handle Dismissing / Toggling User Access
+  const handleToggleUserStatus = async (targetUser: Officer | Citizen, roleLabel: string) => {
+    const currentActive = targetUser.isActive !== false;
+    const actionLabel = currentActive ? 'dismiss' : 'restore';
+
+    if (currentActive && !window.confirm(`Are you sure you want to dismiss ${targetUser.name} and revoke their access to the platform?`)) {
+      return;
+    }
+
+    setUpdatingUserId(targetUser.id);
+    try {
+      const res = await api.patch(`/auth/users/${targetUser.id}/status`, {
+        isActive: !currentActive,
+      });
+
+      if (res.data.success) {
+        showToast(
+          'success',
+          `${roleLabel} access ${!currentActive ? 'restored' : 'revoked successfully'}.`,
+          currentActive ? 'User Dismissed' : 'Access Restored'
+        );
+        fetchOfficers();
+        fetchCitizens();
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.error || `Failed to ${actionLabel} user.`;
+      showToast('error', msg, 'Action Failed');
+    } finally {
+      setUpdatingUserId(null);
+    }
+  };
+
+  // Filtered citizens
+  const filteredCitizens = citizens.filter((c) => {
+    if (!citizenSearchQuery.trim()) return true;
+    const q = citizenSearchQuery.toLowerCase().trim();
+    return (
+      c.name.toLowerCase().includes(q) ||
+      c.email.toLowerCase().includes(q) ||
+      (c.phone && c.phone.toLowerCase().includes(q))
+    );
+  });
+
+  // Department options for officer provisioning
+  const departmentOptions = [
+    { value: 'All Departments / General Operations', label: 'All Departments / General Operations (View All)' },
+    ...categories.map((c) => ({
+      value: c.name,
+      label: `${c.name} Department`,
+    })),
+  ];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -227,6 +378,7 @@ export function AdminDashboard() {
             onClick={() => {
               fetchHealth();
               fetchOfficers();
+              fetchCitizens();
               fetchCategories();
               showToast('info', 'Telemetry refreshed successfully.', 'Refreshed');
             }}
@@ -260,15 +412,26 @@ export function AdminDashboard() {
           System Overview & Telemetry
         </button>
         <button
-          onClick={() => handleTabChange('users')}
+          onClick={() => handleTabChange('officers')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
-            activeTab === 'users'
+            activeTab === 'officers'
               ? 'bg-purple-600/20 text-purple-300 border border-purple-500/40'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
           }`}
         >
           <Users className="w-4 h-4" />
           Officer Management ({officers.length})
+        </button>
+        <button
+          onClick={() => handleTabChange('citizens')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+            activeTab === 'citizens'
+              ? 'bg-purple-600/20 text-purple-300 border border-purple-500/40'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <Shield className="w-4 h-4" />
+          Citizen Management ({citizens.length})
         </button>
         <button
           onClick={() => handleTabChange('categories')}
@@ -281,81 +444,81 @@ export function AdminDashboard() {
           <Inbox className="w-4 h-4" />
           Incident Categories ({categories.length})
         </button>
-        <button
-          onClick={() => handleTabChange('audit')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
-            activeTab === 'audit'
-              ? 'bg-purple-600/20 text-purple-300 border border-purple-500/40'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-          }`}
-        >
-          <Lock className="w-4 h-4" />
-          Security & Audit Controls
-        </button>
       </div>
 
       {/* Tab 1: Overview */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
           {/* Status Metrics */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <Card className="border-slate-800 bg-slate-900/60">
-              <CardContent className="p-5 flex items-center justify-between">
+              <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <div className="text-xs text-slate-400">Server Health</div>
-                  <div className="text-xl font-bold text-emerald-400 mt-1 flex items-center gap-1.5">
+                  <div className="text-lg font-bold text-emerald-400 mt-1 flex items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4" />
                     {healthLoading ? 'Checking...' : health?.status === 'online' ? 'Online & Active' : 'Online'}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">Env: {health?.environment || 'production'}</div>
                 </div>
-                <Server className="w-8 h-8 text-emerald-500/30" />
+                <Server className="w-7 h-7 text-emerald-500/30" />
               </CardContent>
             </Card>
 
             <Card className="border-slate-800 bg-slate-900/60">
-              <CardContent className="p-5 flex items-center justify-between">
+              <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <div className="text-xs text-slate-400">MongoDB Database</div>
-                  <div className="text-xl font-bold text-brand-400 mt-1 flex items-center gap-1.5">
+                  <div className="text-lg font-bold text-brand-400 mt-1 flex items-center gap-1.5">
                     <Database className="w-4 h-4" />
                     {health?.database?.status === 'connected' ? 'Connected' : 'Active'}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">DB: {health?.database?.name || 'safemap'}</div>
                 </div>
-                <Database className="w-8 h-8 text-brand-500/30" />
+                <Database className="w-7 h-7 text-brand-500/30" />
               </CardContent>
             </Card>
 
             <Card className="border-slate-800 bg-slate-900/60">
-              <CardContent className="p-5 flex items-center justify-between">
+              <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <div className="text-xs text-slate-400">Active Officers</div>
-                  <div className="text-xl font-bold text-purple-400 mt-1">{officers.length} Registered</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Law Enforcement Accounts</div>
+                  <div className="text-lg font-bold text-purple-400 mt-1">{officers.length} Registered</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">Law Enforcement</div>
                 </div>
-                <Users className="w-8 h-8 text-purple-500/30" />
+                <Users className="w-7 h-7 text-purple-500/30" />
               </CardContent>
             </Card>
 
             <Card className="border-slate-800 bg-slate-900/60">
-              <CardContent className="p-5 flex items-center justify-between">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-slate-400">Registered Citizens</div>
+                  <div className="text-lg font-bold text-indigo-400 mt-1">{citizens.length} Verified</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">Citizen Accounts</div>
+                </div>
+                <Shield className="w-7 h-7 text-indigo-500/30" />
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-800 bg-slate-900/60">
+              <CardContent className="p-4 flex items-center justify-between">
                 <div>
                   <div className="text-xs text-slate-400">Incident Categories</div>
-                  <div className="text-xl font-bold text-amber-400 mt-1">{categories.length} Types</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">Categorization Schema</div>
+                  <div className="text-lg font-bold text-amber-400 mt-1">{categories.length} Types</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">Crime Taxonomy</div>
                 </div>
-                <Inbox className="w-8 h-8 text-amber-500/30" />
+                <Inbox className="w-7 h-7 text-amber-500/30" />
               </CardContent>
             </Card>
           </div>
 
-          {/* Rapid Command Navigation */}
+          {/* Rapid Command Navigation: Clean 4-card grid (Odoo ERP Bridge and Public Safety Map removed) */}
           <div className="space-y-3">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">Platform Command Consoles</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <Link to="/officer" className="block group">
-                <Card className="border-slate-800 bg-slate-900/40 hover:border-brand-500/40 hover:bg-slate-900/80 transition-all">
+                <Card className="border-slate-800 bg-slate-900/40 hover:border-brand-500/40 hover:bg-slate-900/80 transition-all h-full">
                   <CardHeader className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -372,7 +535,7 @@ export function AdminDashboard() {
               </Link>
 
               <Link to="/officer/investigations" className="block group">
-                <Card className="border-slate-800 bg-slate-900/40 hover:border-purple-500/40 hover:bg-slate-900/80 transition-all">
+                <Card className="border-slate-800 bg-slate-900/40 hover:border-purple-500/40 hover:bg-slate-900/80 transition-all h-full">
                   <CardHeader className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -388,25 +551,8 @@ export function AdminDashboard() {
                 </Card>
               </Link>
 
-              <Link to="/officer/odoo" className="block group">
-                <Card className="border-slate-800 bg-slate-900/40 hover:border-indigo-500/40 hover:bg-slate-900/80 transition-all">
-                  <CardHeader className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Layers className="w-4 h-4 text-indigo-400" />
-                        <CardTitle className="text-sm">Odoo ERP Helpdesk Bridge</CardTitle>
-                      </div>
-                      <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-indigo-400 transition-colors" />
-                    </div>
-                    <CardDescription className="text-xs mt-1">
-                      Live sync console with Odoo back-office tickets and audit logs.
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              </Link>
-
               <Link to="/officer/analytics" className="block group">
-                <Card className="border-slate-800 bg-slate-900/40 hover:border-cyan-500/40 hover:bg-slate-900/80 transition-all">
+                <Card className="border-slate-800 bg-slate-900/40 hover:border-cyan-500/40 hover:bg-slate-900/80 transition-all h-full">
                   <CardHeader className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -416,14 +562,14 @@ export function AdminDashboard() {
                       <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-cyan-400 transition-colors" />
                     </div>
                     <CardDescription className="text-xs mt-1">
-                      AI query assistant, heatmaps, resolution SLA metrics.
+                      Heatmaps, resolution SLA metrics, and incident distribution.
                     </CardDescription>
                   </CardHeader>
                 </Card>
               </Link>
 
               <Link to="/officer/alerts" className="block group">
-                <Card className="border-slate-800 bg-slate-900/40 hover:border-rose-500/40 hover:bg-slate-900/80 transition-all">
+                <Card className="border-slate-800 bg-slate-900/40 hover:border-rose-500/40 hover:bg-slate-900/80 transition-all h-full">
                   <CardHeader className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -438,30 +584,13 @@ export function AdminDashboard() {
                   </CardHeader>
                 </Card>
               </Link>
-
-              <Link to="/map" className="block group">
-                <Card className="border-slate-800 bg-slate-900/40 hover:border-emerald-500/40 hover:bg-slate-900/80 transition-all">
-                  <CardHeader className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-emerald-400" />
-                        <CardTitle className="text-sm">Public Safety Map</CardTitle>
-                      </div>
-                      <ExternalLink className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400 transition-colors" />
-                    </div>
-                    <CardDescription className="text-xs mt-1">
-                      High-resolution live incident clustering with zero watermarks.
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              </Link>
             </div>
           </div>
         </div>
       )}
 
-      {/* Tab 2: Users & Officers */}
-      {activeTab === 'users' && (
+      {/* Tab 2: Officer Management */}
+      {activeTab === 'officers' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
@@ -488,48 +617,79 @@ export function AdminDashboard() {
                   <tr>
                     <th className="px-4 py-3">Officer Name</th>
                     <th className="px-4 py-3">Badge Number</th>
-                    <th className="px-4 py-3">Department</th>
+                    <th className="px-4 py-3">Assigned Department</th>
                     <th className="px-4 py-3">Email Address</th>
                     <th className="px-4 py-3">Role Status</th>
+                    <th className="px-4 py-3 text-right">Access Control</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 text-slate-300 font-medium">
                   {officersLoading ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-8 text-slate-500">
+                      <td colSpan={6} className="text-center py-8 text-slate-500">
                         <LoadingSpinner size="md" className="mx-auto mb-2" />
                         Loading registered officers...
                       </td>
                     </tr>
                   ) : officers.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-8 text-slate-500">
+                      <td colSpan={6} className="text-center py-8 text-slate-500">
                         No officers found in directory. Use "Add Officer Account" to provision your first officer.
                       </td>
                     </tr>
                   ) : (
-                    officers.map((officer) => (
-                      <tr key={officer.id} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="px-4 py-3 font-semibold text-white flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-purple-900/60 text-purple-300 flex items-center justify-center font-bold text-xs border border-purple-700/50">
-                            {officer.name.charAt(0).toUpperCase()}
-                          </div>
-                          {officer.name}
-                        </td>
-                        <td className="px-4 py-3 font-mono text-purple-300">
-                          {officer.badgeNumber || 'SHERIFF-01'}
-                        </td>
-                        <td className="px-4 py-3 text-slate-300">
-                          {officer.department || 'Metropolitan Police Dept'}
-                        </td>
-                        <td className="px-4 py-3 text-slate-400">{officer.email}</td>
-                        <td className="px-4 py-3">
-                          <Badge variant="success" className="text-[10px]">
-                            AUTHORIZED
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))
+                    officers.map((officer) => {
+                      const isActive = officer.isActive !== false;
+                      const isCurrentUser = officer.id === user?.id;
+                      return (
+                        <tr key={officer.id} className="hover:bg-slate-800/40 transition-colors">
+                          <td className="px-4 py-3 font-semibold text-white flex items-center gap-2">
+                            <div className={`w-7 h-7 rounded-full ${isActive ? 'bg-purple-900/60 text-purple-300 border-purple-700/50' : 'bg-slate-800 text-slate-500 border-slate-700'} flex items-center justify-center font-bold text-xs border`}>
+                              {officer.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <span>{officer.name}</span>
+                              {isCurrentUser && (
+                                <span className="ml-1.5 text-[10px] text-purple-400 font-normal">(You)</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 font-mono text-purple-300">
+                            {officer.badgeNumber || 'SHERIFF-01'}
+                          </td>
+                          <td className="px-4 py-3 text-slate-300">
+                            <span className="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-[11px] font-medium text-slate-200">
+                              {officer.department || 'All Departments'}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-slate-400">{officer.email}</td>
+                          <td className="px-4 py-3">
+                            {isActive ? (
+                              <Badge variant="success" className="text-[10px]">
+                                AUTHORIZED
+                              </Badge>
+                            ) : (
+                              <Badge variant="danger" className="text-[10px]">
+                                ACCESS REVOKED
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {!isCurrentUser && (
+                              <Button
+                                variant={isActive ? 'danger' : 'outline'}
+                                size="sm"
+                                isLoading={updatingUserId === officer.id}
+                                onClick={() => handleToggleUserStatus(officer, 'Officer')}
+                                leftIcon={isActive ? <UserX className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                              >
+                                {isActive ? 'Dismiss' : 'Restore'}
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -538,14 +698,138 @@ export function AdminDashboard() {
         </div>
       )}
 
-      {/* Tab 3: Incident Categories */}
+      {/* Tab 3: Citizen Management */}
+      {activeTab === 'citizens' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-white">Registered Citizen Directory</h2>
+                <Badge variant="info" className="text-xs">
+                  {citizens.length} Total Citizens
+                </Badge>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                View registered community citizens, verify account states, and manage platform access permissions.
+              </p>
+            </div>
+
+            {/* Citizen Search Bar */}
+            <div className="w-full sm:w-72">
+              <Input
+                placeholder="Search citizen by name or email..."
+                value={citizenSearchQuery}
+                onChange={(e) => setCitizenSearchQuery(e.target.value)}
+                leftIcon={<Search className="w-4 h-4 text-slate-400" />}
+              />
+            </div>
+          </div>
+
+          <Card className="border-slate-800 bg-slate-900/70 overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
+                  <tr>
+                    <th className="px-4 py-3">Citizen Name</th>
+                    <th className="px-4 py-3">Email Address</th>
+                    <th className="px-4 py-3">Phone</th>
+                    <th className="px-4 py-3">Registration Date</th>
+                    <th className="px-4 py-3">Account Status</th>
+                    <th className="px-4 py-3 text-right">Access Control</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 text-slate-300 font-medium">
+                  {citizensLoading ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 text-slate-500">
+                        <LoadingSpinner size="md" className="mx-auto mb-2" />
+                        Loading registered citizens...
+                      </td>
+                    </tr>
+                  ) : filteredCitizens.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-8 text-slate-500">
+                        {citizenSearchQuery ? 'No citizens match your search query.' : 'No registered citizens found in system.'}
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredCitizens.map((citizen) => {
+                      const isActive = citizen.isActive !== false;
+                      const isCurrentUser = citizen.id === user?.id;
+                      return (
+                        <tr key={citizen.id} className="hover:bg-slate-800/40 transition-colors">
+                          <td className="px-4 py-3 font-semibold text-white flex items-center gap-2">
+                            <div className={`w-7 h-7 rounded-full ${isActive ? 'bg-indigo-900/60 text-indigo-300 border-indigo-700/50' : 'bg-slate-800 text-slate-500 border-slate-700'} flex items-center justify-center font-bold text-xs border`}>
+                              {citizen.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <span>{citizen.name}</span>
+                              {isCurrentUser && (
+                                <span className="ml-1.5 text-[10px] text-indigo-400 font-normal">(You)</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-slate-300">{citizen.email}</td>
+                          <td className="px-4 py-3 font-mono text-slate-400">
+                            {citizen.phone || '—'}
+                          </td>
+                          <td className="px-4 py-3 text-slate-400">
+                            {citizen.createdAt ? new Date(citizen.createdAt).toLocaleDateString() : 'Active Member'}
+                          </td>
+                          <td className="px-4 py-3">
+                            {isActive ? (
+                              <Badge variant="success" className="text-[10px]">
+                                ACTIVE
+                              </Badge>
+                            ) : (
+                              <Badge variant="danger" className="text-[10px]">
+                                ACCESS REVOKED
+                              </Badge>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            {!isCurrentUser && (
+                              <Button
+                                variant={isActive ? 'danger' : 'outline'}
+                                size="sm"
+                                isLoading={updatingUserId === citizen.id}
+                                onClick={() => handleToggleUserStatus(citizen, 'Citizen')}
+                                leftIcon={isActive ? <UserX className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                              >
+                                {isActive ? 'Dismiss' : 'Restore'}
+                              </Button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Tab 4: Incident Categories */}
       {activeTab === 'categories' && (
         <div className="space-y-6">
-          <div>
-            <h2 className="text-lg font-bold text-white">Configured Crime Categories</h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Defines severity ratings, emergency SLAs, and classification models for automated incident triage.
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-white">Configured Crime Categories</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Defines severity ratings, emergency SLAs, and classification models. Newly added categories immediately appear in citizen reporting.
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setShowCategoryModal(true)}
+              leftIcon={<Plus className="w-4 h-4" />}
+              className="bg-purple-600 hover:bg-purple-500 text-white"
+            >
+              Add Incident Category
+            </Button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -560,94 +844,32 @@ export function AdminDashboard() {
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <Badge variant={cat.severity === 'CRITICAL' ? 'danger' : cat.severity === 'HIGH' ? 'warning' : 'info'}>
-                        {cat.severity}
+                        {cat.severity || 'MEDIUM'}
                       </Badge>
-                      <span className="font-mono text-[10px] text-slate-400">{cat.code}</span>
+                      <span className="font-mono text-[10px] text-slate-400">{cat.slug || cat.code}</span>
                     </div>
-                    <CardTitle className="text-base mt-2 text-white">{cat.name}</CardTitle>
-                    <CardDescription className="text-xs line-clamp-2">{cat.description}</CardDescription>
+                    <CardTitle className="text-base mt-2 text-white flex items-center gap-2">
+                      <span
+                        className="w-3 h-3 rounded-full shrink-0"
+                        style={{ backgroundColor: cat.color || '#4F46E5' }}
+                      />
+                      {cat.name}
+                    </CardTitle>
+                    <CardDescription className="text-xs line-clamp-2">{cat.description || 'Public safety incident classification category.'}</CardDescription>
                   </CardHeader>
                   <CardContent className="pt-2 border-t border-slate-800/60 text-[11px] text-slate-400 flex items-center justify-between">
                     <span className="flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-brand-400" />
-                      Resolution SLA: <strong className="text-slate-200">{cat.slaResolutionHours}h</strong>
+                      Resolution SLA: <strong className="text-slate-200">{cat.slaResolutionHours || 24}h</strong>
                     </span>
-                    <span className="font-semibold text-emerald-400">Active</span>
+                    <span className="font-semibold text-emerald-400 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />
+                      Active for Reports
+                    </span>
                   </CardContent>
                 </Card>
               ))
             )}
-          </div>
-        </div>
-      )}
-
-      {/* Tab 4: Security & Audit Controls */}
-      {activeTab === 'audit' && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-lg font-bold text-white">System Security & Access Policies</h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Enforced Role-Based Access Control (RBAC), cookie policies, and authentication specifications.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="border-slate-800 bg-slate-900/60">
-              <CardHeader>
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-purple-400" />
-                  Role-Based Access Control Matrix
-                </CardTitle>
-                <CardDescription className="text-xs">Access barriers enforced per route middleware.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2 text-xs">
-                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-                  <div>
-                    <strong className="text-white">Admin Privileges</strong>
-                    <div className="text-[11px] text-slate-400">Full control over officer creation, system monitoring, and platform configuration.</div>
-                  </div>
-                  <Badge variant="danger">TIER 1</Badge>
-                </div>
-                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-                  <div>
-                    <strong className="text-white">Law Enforcement Officer</strong>
-                    <div className="text-[11px] text-slate-400">Triage incident reports, investigate cases, trigger Odoo sync, issue public emergency alerts.</div>
-                  </div>
-                  <Badge variant="warning">TIER 2</Badge>
-                </div>
-                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-                  <div>
-                    <strong className="text-white">Verified Citizen</strong>
-                    <div className="text-[11px] text-slate-400">Submit crime reports with photo evidence, view my reports, browse interactive map.</div>
-                  </div>
-                  <Badge variant="info">TIER 3</Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-slate-800 bg-slate-900/60">
-              <CardHeader>
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  Production Deployment & Network Security
-                </CardTitle>
-                <CardDescription className="text-xs">Security headers, cookie boundaries, and tile policies.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2 text-xs">
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                  <div className="font-semibold text-slate-300">Single Render Web Service</div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">Frontend + Backend served from same Render origin. Relative API routing `/api/v1`.</div>
-                </div>
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                  <div className="font-semibold text-slate-300">HTTP-Only SameSite Refresh Cookies</div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">Protected against XSS. Automatically configured for HTTPS in cloud production.</div>
-                </div>
-                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                  <div className="font-semibold text-slate-300">Strict-Origin-When-Cross-Origin Referrer Policy</div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">Protects user privacy while allowing map tile servers to receive legitimate referrers.</div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       )}
@@ -692,20 +914,37 @@ export function AdminDashboard() {
                 onChange={(e) => setOfficerForm({ ...officerForm, badgeNumber: e.target.value })}
                 required
               />
-              <Input
-                label="Assigned Department"
-                placeholder="Metropolitan Police Dept"
+
+              {/* Assigned Department Dropdown */}
+              <Select
+                label="Assigned Department *"
+                options={departmentOptions}
                 value={officerForm.department}
                 onChange={(e) => setOfficerForm({ ...officerForm, department: e.target.value })}
                 required
               />
+              <p className="text-[11px] text-slate-400 -mt-1">
+                Officers will strictly triage and investigate incidents belonging to their assigned department.
+              </p>
+
+              {/* Password field with Eye / EyeOff icon toggle */}
               <Input
                 label="Initial Password"
-                type="password"
+                type={showOfficerPassword ? 'text' : 'password'}
                 placeholder="At least 8 characters..."
                 value={officerForm.password}
                 onChange={(e) => setOfficerForm({ ...officerForm, password: e.target.value })}
                 helperText="Must be 8+ characters"
+                rightIcon={
+                  <button
+                    type="button"
+                    onClick={() => setShowOfficerPassword(!showOfficerPassword)}
+                    className="text-slate-400 hover:text-slate-200 transition-colors focus:outline-none"
+                    aria-label="Toggle password visibility"
+                  >
+                    {showOfficerPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                }
                 required
               />
 
@@ -726,6 +965,123 @@ export function AdminDashboard() {
                   className="bg-purple-600 hover:bg-purple-500 text-white"
                 >
                   Create Officer Account
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Category Modal (Admin Only) */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-slate-900 border border-purple-500/40 rounded-2xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <Plus className="w-5 h-5 text-purple-400" />
+                <h3 className="font-bold text-base text-white">Create Incident Category</h3>
+              </div>
+              <button
+                onClick={() => setShowCategoryModal(false)}
+                className="text-slate-400 hover:text-white text-lg font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCategory} className="space-y-3 text-xs">
+              <Input
+                label="Category Name *"
+                placeholder="e.g. Arson & Hazardous Materials"
+                value={categoryForm.name}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const autoSlug = val.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                  setCategoryForm({ ...categoryForm, name: val, slug: autoSlug });
+                }}
+                required
+              />
+
+              <Input
+                label="URL / API Slug"
+                placeholder="e.g. arson"
+                value={categoryForm.slug}
+                onChange={(e) => setCategoryForm({ ...categoryForm, slug: e.target.value })}
+                helperText="Auto-generated unique identifier"
+              />
+
+              <Input
+                label="Description"
+                placeholder="Detailed explanation of what falls under this crime classification..."
+                value={categoryForm.description}
+                onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+              />
+
+              <div className="grid grid-cols-2 gap-3">
+                <Select
+                  label="Severity Level"
+                  options={[
+                    { value: 'LOW', label: 'LOW - General' },
+                    { value: 'MEDIUM', label: 'MEDIUM - Standard' },
+                    { value: 'HIGH', label: 'HIGH - Urgent' },
+                    { value: 'CRITICAL', label: 'CRITICAL - Emergency' },
+                  ]}
+                  value={categoryForm.severity}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, severity: e.target.value })}
+                />
+
+                <Input
+                  label="Resolution SLA (Hours)"
+                  type="number"
+                  min={1}
+                  max={168}
+                  value={categoryForm.slaResolutionHours}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, slaResolutionHours: Number(e.target.value) })}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  label="Display Color Hex"
+                  placeholder="#EF4444"
+                  value={categoryForm.color}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
+                />
+
+                <Select
+                  label="Category Icon"
+                  options={[
+                    { value: 'AlertTriangle', label: 'Alert Triangle' },
+                    { value: 'Shield', label: 'Shield' },
+                    { value: 'Flame', label: 'Flame / Fire' },
+                    { value: 'Car', label: 'Car / Traffic' },
+                    { value: 'Lock', label: 'Lock / Security' },
+                    { value: 'Laptop', label: 'Laptop / Cyber' },
+                    { value: 'Eye', label: 'Eye / Surveillance' },
+                    { value: 'HelpCircle', label: 'Help / Other' },
+                  ]}
+                  value={categoryForm.icon}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, icon: e.target.value })}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-800">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCategoryModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  isLoading={isSubmittingCategory}
+                  className="bg-purple-600 hover:bg-purple-500 text-white"
+                >
+                  Save & Publish Category
                 </Button>
               </div>
             </form>

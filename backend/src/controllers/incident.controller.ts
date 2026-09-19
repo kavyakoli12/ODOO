@@ -12,7 +12,16 @@ import {
   getOfficerIncidentDetail,
   reviewIncident,
   OfficerReviewDTO,
+  createCategory,
 } from '../services/incident.service.js';
+
+const createCategorySchema = z.object({
+  name: z.string().min(2, 'Category name must be at least 2 characters').max(100),
+  slug: z.string().max(100).optional(),
+  description: z.string().max(500).optional(),
+  color: z.string().optional(),
+  icon: z.string().optional(),
+});
 
 const createIncidentSchema = z.object({
   title: z
@@ -44,6 +53,36 @@ export async function getCategoriesController(_req: Request, res: Response): Pro
     success: true,
     data: categories,
   });
+}
+
+export async function createCategoryController(req: Request, res: Response): Promise<void> {
+  if (!req.user || req.user.role !== 'admin') {
+    res.status(403).json({ success: false, error: 'Administrative clearance required.' });
+    return;
+  }
+
+  const parseResult = createCategorySchema.safeParse(req.body);
+  if (!parseResult.success) {
+    res.status(400).json({
+      success: false,
+      error: parseResult.error.errors[0].message,
+    });
+    return;
+  }
+
+  try {
+    const category = await createCategory(parseResult.data);
+    res.status(201).json({
+      success: true,
+      message: 'Incident category created successfully.',
+      data: category,
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to create incident category.',
+    });
+  }
 }
 
 export async function createIncidentController(req: Request, res: Response): Promise<void> {
@@ -242,6 +281,13 @@ export async function getOfficerQueueController(req: Request, res: Response): Pr
     }
     if (typeof req.query.searchQuery === 'string') filters.searchQuery = req.query.searchQuery.trim();
     if (typeof req.query.sortBy === 'string') filters.sortBy = req.query.sortBy.trim();
+
+    // Department scoping: officers only see incidents in their assigned department
+    if (req.user.role === 'officer' && req.user.department) {
+      filters.department = req.user.department;
+    } else if (typeof req.query.department === 'string') {
+      filters.department = req.query.department.trim();
+    }
 
     const { stats, incidents } = await getOfficerQueue(filters);
 

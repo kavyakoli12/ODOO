@@ -16,7 +16,7 @@ export function NotFoundPage() {
         Location Coordinates Not Found
       </h2>
       <p className="text-xs sm:text-sm text-slate-400 max-w-md mb-8 leading-relaxed">
-        The incident page, resource, or map sector you are looking for has been moved, closed, or does not exist in the SafeMap system.
+        The incident page, resource, or map sector you are looking for has been moved, closed, or does not exist in the Trinetra system.
       </p>
 
       <div className="flex items-center gap-3">

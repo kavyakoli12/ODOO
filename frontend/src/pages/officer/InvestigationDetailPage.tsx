@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import {
-  Shield,
   ArrowLeft,
   Clock,
   User,
@@ -506,64 +505,6 @@ export function InvestigationDetailPage() {
                     ID: {investigation.leadOfficerId.slice(-6)}
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Status & Lifecycle Controls */}
-          <Card className="border-slate-800 bg-slate-900/60">
-            <CardHeader className="pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <Shield className="w-4 h-4 text-indigo-400" />
-                <CardTitle className="text-xs font-bold text-white uppercase tracking-wider">
-                  Case Status Controls
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-4 space-y-2">
-              <div className="text-[10px] text-slate-400 mb-2">
-                Update operational state of this inquiry:
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant={investigation.status === 'open' ? 'primary' : 'outline'}
-                  size="sm"
-                  disabled={isUpdatingStatus || investigation.status === 'open'}
-                  onClick={() => handleUpdateStatus('open')}
-                  className="text-xs"
-                >
-                  Mark Open
-                </Button>
-
-                <Button
-                  variant={investigation.status === 'active' ? 'primary' : 'outline'}
-                  size="sm"
-                  disabled={isUpdatingStatus || investigation.status === 'active'}
-                  onClick={() => handleUpdateStatus('active')}
-                  className="text-xs border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
-                >
-                  Mark Active
-                </Button>
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={isUpdatingStatus || investigation.status === 'suspended'}
-                  onClick={() => handleUpdateStatus('suspended')}
-                  className="text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
-                >
-                  Suspend
-                </Button>
-
-                <Button
-                  variant={investigation.status === 'closed' ? 'secondary' : 'outline'}
-                  size="sm"
-                  onClick={() => setIsResolveModalOpen(true)}
-                  className="text-xs border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
-                >
-                  Close / Resolve
-                </Button>
               </div>
             </CardContent>
           </Card>

@@ -69,7 +69,7 @@ export function MapLegend() {
 
             {/* Privacy notice */}
             <div className="pt-2 border-t border-slate-800/80 text-[10px] text-slate-400 leading-tight">
-              Coordinates generalized. SafeMap enforces citizen anonymity on public maps.
+              Coordinates generalized. Trinetra enforces citizen anonymity on public maps.
             </div>
           </div>
         )}

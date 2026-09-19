@@ -15,6 +15,8 @@ import {
   Eye,
   EyeOff,
   Image as ImageIcon,
+  ExternalLink,
+  X,
 } from 'lucide-react';
 import {
   Card,
@@ -44,6 +46,7 @@ export function IncidentReviewPage() {
   const [incident, setIncident] = useState<Incident | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [selectedEvidenceImage, setSelectedEvidenceImage] = useState<string | null>(null);
 
   // Rejection modal state
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
@@ -264,10 +267,21 @@ export function IncidentReviewPage() {
           {/* Location & Interactive Mini Map */}
           <Card className="border-slate-800 bg-slate-900/50">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-rose-400" />
-                Geospatial Incident Location
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-rose-400" />
+                  Geospatial Incident Location
+                </CardTitle>
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-brand-300 hover:text-white border border-slate-700 transition-colors shadow-sm"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Open in Google Maps</span>
+                </a>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="text-xs text-slate-300 bg-slate-950 p-3 rounded-xl border border-slate-800">
@@ -310,27 +324,50 @@ export function IncidentReviewPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {incident.evidence.map((ev: any) => (
-                    <div
-                      key={ev.id}
-                      className="p-2 rounded-xl bg-slate-950 border border-slate-800 space-y-2 group"
-                    >
-                      <div className="h-28 rounded-lg bg-slate-900 overflow-hidden flex items-center justify-center">
-                        {ev.mimeType?.startsWith('image/') ? (
-                          <img
-                            src={ev.fileUrl}
-                            alt={ev.originalFilename}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                          />
-                        ) : (
-                          <FileText className="w-8 h-8 text-slate-500" />
-                        )}
+                  {incident.evidence.map((ev: any) => {
+                    const isImg =
+                      ev.mimeType?.startsWith('image/') ||
+                      ev.fileUrl?.startsWith('data:image/') ||
+                      /\.(jpe?g|png|webp|gif)$/i.test(ev.fileUrl || '') ||
+                      /\.(jpe?g|png|webp|gif)$/i.test(ev.originalFilename || '');
+
+                    return (
+                      <div
+                        key={ev.id}
+                        onClick={() => isImg && setSelectedEvidenceImage(ev.fileUrl)}
+                        className={`p-2 rounded-xl bg-slate-950 border border-slate-800 space-y-2 group ${
+                          isImg ? 'cursor-pointer hover:border-brand-500/50 transition-colors' : ''
+                        }`}
+                      >
+                        <div className="h-32 rounded-lg bg-slate-900 overflow-hidden flex items-center justify-center relative">
+                          {isImg ? (
+                            <>
+                              <img
+                                src={ev.fileUrl}
+                                alt={ev.originalFilename || 'Incident evidence photo'}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                }}
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                <Eye className="w-5 h-5" />
+                              </div>
+                            </>
+                          ) : (
+                            <FileText className="w-8 h-8 text-slate-500" />
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-400 truncate flex items-center justify-between">
+                          <span className="truncate">{ev.originalFilename || 'evidence-file'}</span>
+                          {ev.fileSizeMB ? (
+                            <span className="text-[9px] text-slate-500 ml-1 shrink-0">{ev.fileSizeMB} MB</span>
+                          ) : null}
+                        </div>
                       </div>
-                      <div className="text-[10px] text-slate-400 truncate">
-                        {ev.originalFilename}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </CardContent>
@@ -659,6 +696,30 @@ export function IncidentReviewPage() {
       {incident && (
         <div className="mt-6">
           <ConversationPanel incidentId={incident.id} showInternalNoteToggle={true} />
+        </div>
+      )}
+
+      {/* Evidence Image Lightbox Modal */}
+      {selectedEvidenceImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedEvidenceImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
+            <button
+              onClick={() => setSelectedEvidenceImage(null)}
+              aria-label="Close photo preview"
+              className="absolute -top-10 right-0 p-1.5 rounded-full bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <img
+              src={selectedEvidenceImage}
+              alt="Enlarged Evidence Preview"
+              className="max-w-full max-h-[85vh] object-contain rounded-xl border border-slate-800 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
         </div>
       )}
     </div>

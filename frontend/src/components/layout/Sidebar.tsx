@@ -12,7 +12,6 @@ import {
   PlusCircle,
   Users,
   LogOut,
-  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button, useToast } from '@/components/ui';
@@ -84,14 +83,13 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
     { label: 'Active Investigations', path: '/officer/investigations', icon: <Shield className="w-4 h-4" /> },
     { label: 'Crime Trend Analytics', path: '/officer/analytics', icon: <BarChart2 className="w-4 h-4" /> },
     { label: 'Emergency Alerts', path: '/officer/alerts', icon: <Bell className="w-4 h-4" /> },
-    { label: 'Odoo ERP Bridge', path: '/officer/odoo', icon: <Layers className="w-4 h-4" /> },
   ];
 
   const adminLinks = [
     { label: 'System Overview', path: '/admin', icon: <BarChart2 className="w-4 h-4" /> },
-    { label: 'User & Officer Management', path: '/admin/users', icon: <Users className="w-4 h-4" /> },
+    { label: 'Officer Management', path: '/admin/users', icon: <Users className="w-4 h-4" /> },
+    { label: 'Citizen Management', path: '/admin/citizens', icon: <Shield className="w-4 h-4" /> },
     { label: 'Incident Categories', path: '/admin/categories', icon: <Inbox className="w-4 h-4" /> },
-    { label: 'System Audit Logs', path: '/admin/audit', icon: <Shield className="w-4 h-4" /> },
   ];
 
   const links =
@@ -132,10 +130,10 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
               </div>
               <div className="flex flex-col justify-center">
                 <span className="font-bold text-base tracking-tight text-white leading-tight">
-                  Safe<span className="text-brand-400">Map</span>
+                  Trinetra
                 </span>
                 <span className="text-[10px] text-slate-400 leading-tight">
-                  Incident Reporting
+                  Citizen Safety & Vigilance
                 </span>
               </div>
             </Link>
