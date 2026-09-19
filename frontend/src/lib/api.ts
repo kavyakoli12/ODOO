@@ -1,9 +1,10 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '@/store/authStore';
 
-const baseURL =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.PROD ? '/api/v1' : 'http://localhost:5000/api/v1');
+// Centralized relative base URL — all requests route to /api/v1
+// In local dev, Vite proxies /api to http://localhost:5000
+// In Render production, Express directly serves /api/v1 from the same origin
+const baseURL = '/api/v1';
 
 export const api = axios.create({
   baseURL,

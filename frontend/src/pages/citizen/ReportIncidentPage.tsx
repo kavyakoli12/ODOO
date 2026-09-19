@@ -134,9 +134,7 @@ export function ReportIncidentPage() {
           const formData = new FormData();
           formData.append('file', evidenceFile);
           try {
-            await api.post(`/incidents/${newInc.id}/evidence`, formData, {
-              headers: { 'Content-Type': 'multipart/form-data' },
-            });
+            await api.post(`/incidents/${newInc.id}/evidence`, formData);
           } catch (evErr) {
             console.warn('Evidence upload failed, but incident was saved');
           }

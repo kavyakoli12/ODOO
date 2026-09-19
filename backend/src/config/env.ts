@@ -3,6 +3,11 @@ import { z } from 'zod';
 
 dotenv.config();
 
+// If running in Render cloud environment and NODE_ENV is unset, default to production
+if (process.env.RENDER && !process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'production';
+}
+
 const envSchema = z.object({
   PORT: z.string().default('5000').transform((val) => parseInt(val, 10)),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),

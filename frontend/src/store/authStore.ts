@@ -57,9 +57,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   initAuth: async () => {
     try {
       set({ isLoading: true });
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
       // Attempt to silently refresh token using the HTTP-only refresh cookie
-      const res = await fetch(`${apiUrl}/auth/refresh`, {
+      // Uses relative /api/v1 (proxied locally by Vite, served directly on Render)
+      const res = await fetch('/api/v1/auth/refresh', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include', // Includes HTTP-only cookies
