@@ -5,12 +5,12 @@ import {
   Upload,
   CheckCircle2,
   AlertTriangle,
-  Eye,
   Sparkles,
   ArrowRight,
 } from 'lucide-react';
 import { Button, LoadingSpinner } from '@/components/ui';
 import { api } from '@/lib/api';
+import { TrinetraLogo } from '@/components/common/TrinetraLogo';
 
 export interface AICrimeAnalysisResult {
   isCrimeOrHazard: boolean;
@@ -567,9 +567,7 @@ export function AICrimeCameraModal({ isOpen, onClose, onAutoFill }: AICrimeCamer
         {/* Header Bar */}
         <div className="flex items-center justify-between px-4 py-3 bg-slate-950/90 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400 animate-pulse">
-              <Eye className="w-4 h-4" />
-            </div>
+            <TrinetraLogo size="sm" variant="badge" />
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-white tracking-wide uppercase">

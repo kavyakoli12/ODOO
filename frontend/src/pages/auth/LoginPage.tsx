@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
-import { Shield, Mail, Lock, Eye, EyeOff, ArrowRight, KeyRound } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, KeyRound } from 'lucide-react';
 import { Button, Input, Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter, useToast } from '@/components/ui';
+import { TrinetraLogo } from '@/components/common/TrinetraLogo';
 import type { AuthResponse } from '@/types/auth';
 
 export function LoginPage() {
@@ -72,16 +73,16 @@ export function LoginPage() {
     <div className="min-h-[75vh] flex flex-col items-center justify-center px-4 py-8">
       <div className="w-full max-w-md space-y-4">
         {/* Brand Icon & Header */}
-        <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center text-white mx-auto shadow-xl shadow-brand-600/30">
-            <Shield className="w-6 h-6" />
+        <div className="text-center space-y-3 flex flex-col items-center">
+          <TrinetraLogo size="xl" variant="badge" className="mx-auto" />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white">
+              Sign In to Trinetra
+            </h1>
+            <p className="text-xs text-slate-400 mt-1">
+              Access your citizen reporting dashboard or law enforcement console
+            </p>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            Sign In to Trinetra
-          </h1>
-          <p className="text-xs text-slate-400">
-            Access your citizen reporting dashboard or law enforcement console
-          </p>
         </div>
 
         {/* Login Card */}

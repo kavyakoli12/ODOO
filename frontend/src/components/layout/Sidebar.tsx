@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button, useToast } from '@/components/ui';
+import { TrinetraLogo } from '@/components/common/TrinetraLogo';
 
 export interface SidebarProps {
   isOpen: boolean;
@@ -125,17 +126,12 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
           {/* Top Branding & Close Button */}
           <div className="flex items-center justify-between pb-4 border-b border-slate-800/80">
             <Link to="/" onClick={onClose} className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-brand-600/30 group-hover:scale-105 transition-transform duration-200 shrink-0">
-                <Shield className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex flex-col justify-center">
-                <span className="font-bold text-base tracking-tight text-white leading-tight">
-                  Trinetra
-                </span>
-                <span className="text-[10px] text-slate-400 leading-tight">
-                  Citizen Safety & Vigilance
-                </span>
-              </div>
+              <TrinetraLogo
+                size="md"
+                variant="badge"
+                showText={true}
+                subtitle="Citizen Safety & Vigilance"
+              />
             </Link>
 
             <button

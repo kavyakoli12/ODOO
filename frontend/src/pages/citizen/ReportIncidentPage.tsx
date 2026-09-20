@@ -30,6 +30,7 @@ import {
 } from '@/components/ui';
 import { LocationPicker } from '@/components/incidents/LocationPicker';
 import { AICrimeCameraModal, AICrimeAnalysisResult, LocationData } from '@/components/incidents/AICrimeCameraModal';
+import { TrinetraLogo } from '@/components/common/TrinetraLogo';
 import type { IncidentCategory, Incident } from '@/types/incident';
 import { toLocalDateTimeString } from '@/lib/utils';
 
@@ -321,9 +322,7 @@ export function ReportIncidentPage() {
       {/* Trinetra AI Crime Camera Scanner Banner */}
       <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950/60 via-slate-900 to-brand-950/60 border border-red-500/40 shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-start gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-red-600/20 border border-red-500/40 flex items-center justify-center text-red-400 shrink-0 mt-0.5 shadow-md shadow-red-900/30">
-            <Camera className="w-5 h-5" />
-          </div>
+          <TrinetraLogo size="md" variant="badge" className="mt-0.5" />
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-white uppercase tracking-wider">

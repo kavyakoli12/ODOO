@@ -108,61 +108,81 @@ export function HomePage() {
       {/* 1. Hero Section */}
       <section className="relative overflow-hidden rounded-3xl p-6 sm:p-12 border border-slate-800 bg-slate-900/90 shadow-2xl">
         <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 max-w-4xl space-y-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-950/80 border border-indigo-700/50 text-indigo-300 text-xs font-semibold">
-            <Radio className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-            <span>Community Safety & Real-Time Incident Intelligence Platform</span>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
+          <div className="max-w-3xl space-y-6">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-950/80 border border-indigo-700/50 text-indigo-300 text-xs font-semibold">
+              <Radio className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+              <span>Community Safety & Real-Time Incident Intelligence Platform</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
+              Report incidents faster. <br />
+              <span className="bg-gradient-to-r from-indigo-400 via-sky-300 to-emerald-400 bg-clip-text text-transparent">
+                Protect your community together.
+              </span>
+            </h1>
+
+            <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl">
+              Trinetra provides direct, transparent public-safety reporting. Citizens report localized incidents anonymously or securely; law enforcement agencies verify and coordinate through automated rapid-response workflows.
+            </p>
+
+            <div className="flex flex-wrap items-center gap-4 pt-2">
+              <Button
+                variant="danger"
+                size="lg"
+                className="h-12 px-6 text-base font-semibold shadow-lg shadow-rose-950/40"
+                onClick={() => {
+                  if (isAuthenticated) {
+                    navigate('/citizen/report');
+                  } else {
+                    showToast('info', 'Please sign in to file an incident report.', 'Authentication Required');
+                    navigate('/login?redirect=/citizen/report');
+                  }
+                }}
+                leftIcon={<ShieldAlert className="w-5 h-5" />}
+                rightIcon={<ArrowRight className="w-4 h-4" />}
+              >
+                Report an Incident
+              </Button>
+            </div>
+
+            {/* Quick trust metrics */}
+            <div className="pt-6 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-slate-400">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>Verified Officer Triage</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span>Optional Anonymous Mode</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                <span>AI Category Detection</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-sky-400 shrink-0" />
+                <span>Direct Police Dispatch</span>
+              </div>
+            </div>
           </div>
 
-          <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white leading-tight">
-            Report incidents faster. <br />
-            <span className="bg-gradient-to-r from-indigo-400 via-sky-300 to-emerald-400 bg-clip-text text-transparent">
-              Protect your community together.
+          {/* Right side hero logo emblem */}
+          <div className="hidden lg:flex flex-col items-center justify-center shrink-0">
+            <div className="relative group">
+              <div className="absolute -inset-2 bg-gradient-to-tr from-brand-600/30 to-indigo-500/30 rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-300" />
+              <div className="relative w-56 h-56 rounded-3xl bg-slate-950/90 border border-slate-700/80 shadow-2xl p-6 flex items-center justify-center">
+                <img
+                  src="/logo.png"
+                  alt="Trinetra Sacred Third Eye"
+                  className="w-full h-full object-contain filter drop-shadow-[0_0_16px_rgba(255,255,255,0.7)] group-hover:scale-105 transition-transform duration-300"
+                />
+              </div>
+            </div>
+            <span className="text-[11px] font-mono uppercase tracking-widest text-slate-400 mt-3 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Trinetra Vigilance Shield
             </span>
-          </h1>
-
-          <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl">
-            Trinetra provides direct, transparent public-safety reporting. Citizens report localized incidents anonymously or securely; law enforcement agencies verify and coordinate through automated rapid-response workflows.
-          </p>
-
-          <div className="flex flex-wrap items-center gap-4 pt-2">
-            <Button
-              variant="danger"
-              size="lg"
-              className="h-12 px-6 text-base font-semibold shadow-lg shadow-rose-950/40"
-              onClick={() => {
-                if (isAuthenticated) {
-                  navigate('/citizen/report');
-                } else {
-                  showToast('info', 'Please sign in to file an incident report.', 'Authentication Required');
-                  navigate('/login?redirect=/citizen/report');
-                }
-              }}
-              leftIcon={<ShieldAlert className="w-5 h-5" />}
-              rightIcon={<ArrowRight className="w-4 h-4" />}
-            >
-              Report an Incident
-            </Button>
-          </div>
-
-          {/* Quick trust metrics */}
-          <div className="pt-6 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-slate-400">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Verified Officer Triage</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Lock className="w-4 h-4 text-indigo-400 shrink-0" />
-              <span>Optional Anonymous Mode</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-              <span>AI Category Detection</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-sky-400 shrink-0" />
-              <span>Direct Police Dispatch</span>
-            </div>
           </div>
         </div>
       </section>

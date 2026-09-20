@@ -16,6 +16,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { useToast } from '@/components/ui';
+import { TrinetraLogo } from '@/components/common/TrinetraLogo';
 
 export function Footer() {
   const { showToast } = useToast();
@@ -45,9 +46,7 @@ export function Footer() {
           {/* Main About Us & Motive Column */}
           <div className="lg:col-span-6 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-purple-500 flex items-center justify-center text-white shadow-xl shadow-brand-600/30 shrink-0">
-                <Shield className="w-5 h-5 text-white" />
-              </div>
+              <TrinetraLogo size="lg" variant="badge" />
               <div>
                 <span className="font-extrabold text-xl tracking-tight text-white flex items-center gap-1.5">
                   Trinetra
