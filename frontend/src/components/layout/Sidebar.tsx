@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
+import { useSafePassageStore } from '@/store/safePassageStore';
 import { api } from '@/lib/api';
 import {
   Shield,
@@ -12,6 +13,7 @@ import {
   PlusCircle,
   Users,
   LogOut,
+  Radio,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button, useToast } from '@/components/ui';
@@ -28,6 +30,7 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
   const navigate = useNavigate();
   const { user, clearAuth } = useAuthStore();
   const { showToast } = useToast();
+  const { setManualModalOpen, activeEscort } = useSafePassageStore();
 
   const effectiveRole = role || user?.role || 'citizen';
 
@@ -72,6 +75,14 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
 
   const citizenLinks = [
     { label: 'Citizen Dashboard', path: '/citizen', icon: <Inbox className="w-4 h-4" /> },
+    {
+      label: 'Safe Passage Escort',
+      path: '#safe-passage',
+      isAction: true,
+      onClick: () => setManualModalOpen(true),
+      icon: <Radio className="w-4 h-4 text-cyan-400 animate-pulse" />,
+      badge: activeEscort ? 'ACTIVE' : 'ACTIVATE',
+    },
     { label: 'Submit New Report', path: '/citizen/report', icon: <PlusCircle className="w-4 h-4" /> },
     { label: 'My Reports', path: '/citizen/reports', icon: <Shield className="w-4 h-4" /> },
     { label: 'Community Map', path: '/map', icon: <Map className="w-4 h-4" /> },
@@ -80,6 +91,7 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
 
   const officerLinks = [
     { label: 'Incident Triage Queue', path: '/officer', icon: <Inbox className="w-4 h-4" /> },
+    { label: 'Safe Passage Escorts', path: '/officer/escorts', icon: <Radio className="w-4 h-4 text-cyan-400" /> },
     { label: 'Tactical Crime Map', path: '/map', icon: <Map className="w-4 h-4" /> },
     { label: 'Active Investigations', path: '/officer/investigations', icon: <Shield className="w-4 h-4" /> },
     { label: 'Crime Trend Analytics', path: '/officer/analytics', icon: <BarChart2 className="w-4 h-4" /> },
@@ -161,7 +173,45 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
 
           {/* Navigation Links */}
           <nav className="space-y-1">
-            {links.map((link) => {
+            {links.map((link: any) => {
+              if (link.isAction) {
+                return (
+                  <button
+                    key={link.label}
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      link.onClick?.();
+                    }}
+                    className={cn(
+                      'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all duration-150 text-left cursor-pointer group',
+                      activeEscort
+                        ? 'bg-cyan-950/60 border border-cyan-500/50 text-cyan-200 shadow-lg shadow-cyan-950/40'
+                        : 'text-cyan-300 hover:text-white hover:bg-cyan-950/40 border border-cyan-500/20'
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-cyan-400 group-hover:scale-110 transition-transform">
+                        {link.icon}
+                      </span>
+                      <span className="font-semibold">{link.label}</span>
+                    </div>
+                    {link.badge && (
+                      <span
+                        className={cn(
+                          'text-[9px] font-bold px-2 py-0.5 rounded-full tracking-wider uppercase',
+                          activeEscort
+                            ? 'bg-cyan-500 text-slate-950 animate-pulse'
+                            : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                        )}
+                      >
+                        {link.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              }
+
               const isActive = location.pathname === link.path;
               return (
                 <Link

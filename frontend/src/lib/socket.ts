@@ -8,20 +8,21 @@ const SOCKET_URL =
 
 let socket: Socket | null = null;
 
-export function getSocket(): Socket | null {
-  return socket;
-}
-
 export function initSocket(): Socket {
-  if (socket && socket.connected) return socket;
+  if (socket) {
+    if (!socket.connected) {
+      socket.connect();
+    }
+    return socket;
+  }
 
   const token = useAuthStore.getState().accessToken;
 
   socket = io(SOCKET_URL, {
     auth: token ? { token } : undefined,
     transports: ['websocket', 'polling'],
-    reconnectionAttempts: 5,
-    reconnectionDelay: 2000,
+    reconnectionAttempts: 10,
+    reconnectionDelay: 1500,
   });
 
   socket.on('connect', () => {
@@ -37,6 +38,10 @@ export function initSocket(): Socket {
   });
 
   return socket;
+}
+
+export function getSocket(): Socket {
+  return initSocket();
 }
 
 export function disconnectSocket(): void {

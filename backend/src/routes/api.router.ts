@@ -9,6 +9,7 @@ import { analyticsRouter } from './analytics.routes.js';
 import { alertRouter } from './alert.routes.js';
 import { odooRouter } from './odoo.routes.js';
 import { aiRouter } from './ai.routes.js';
+import { escortRouter } from './escort.routes.js';
 
 export const apiRouter = Router();
 
@@ -41,6 +42,9 @@ apiRouter.use('/odoo', odooRouter);
 
 // Phase 12: AI Assistance routes
 apiRouter.use('/ai', aiRouter);
+
+// Phase 13: Trinetra Safe Passage (Virtual Escort & Dead-Man's Timer in Red Zones)
+apiRouter.use('/escorts', escortRouter);
 
 // Base API endpoint information
 apiRouter.get('/', (_req: Request, res: Response) => {

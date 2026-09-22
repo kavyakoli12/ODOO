@@ -8,7 +8,7 @@ import {
   Sparkles,
   ArrowRight,
 } from 'lucide-react';
-import { Button, LoadingSpinner } from '@/components/ui';
+import { Button } from '@/components/ui';
 import { api } from '@/lib/api';
 import { TrinetraLogo } from '@/components/common/TrinetraLogo';
 
@@ -19,6 +19,8 @@ export interface AICrimeAnalysisResult {
   categorySlug: string;
   title: string;
   description: string;
+  visibleObservations?: string[];
+  possibleIndicators?: string[];
   severity: number;
   indicators: string[];
   suggestedAction: string;
@@ -641,110 +643,200 @@ export function AICrimeCameraModal({ isOpen, onClose, onAutoFill }: AICrimeCamer
           </div>
         </div>
 
-        {/* Viewfinder / Preview Section */}
-        <div className="relative flex-1 min-h-[300px] sm:min-h-[380px] bg-black flex items-center justify-center overflow-hidden">
-          {/* Live Video View */}
-          {!capturedImage && !cameraError && (
-            <div className="relative w-full h-full flex items-center justify-center">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover max-h-[500px]"
-              />
+        {/* Scrollable Modal Content Body */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          {/* Live Camera Viewfinder (When NO captured photo yet) */}
+          {!capturedImage ? (
+            <div className="relative min-h-[320px] sm:min-h-[400px] bg-black flex items-center justify-center overflow-hidden">
+              {!cameraError && (
+                <div className="relative w-full h-full flex items-center justify-center">
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover max-h-[500px]"
+                  />
 
-              {/* Futuristic HUD Overlay */}
-              <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-4">
-                {/* Top Corner Brackets */}
-                <div className="flex justify-between items-start">
-                  <div className="w-8 h-8 border-t-2 border-l-2 border-red-500/80 rounded-tl-lg" />
-                  <div className="flex items-center gap-2 bg-slate-950/70 border border-slate-800 px-2.5 py-1 rounded-full text-[10px] text-red-400 font-mono">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    AI SCANNER ACTIVE
+                  {/* Futuristic HUD Overlay */}
+                  <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-4">
+                    {/* Top Corner Brackets */}
+                    <div className="flex justify-between items-start">
+                      <div className="w-8 h-8 border-t-2 border-l-2 border-red-500/80 rounded-tl-lg" />
+                      <div className="flex items-center gap-2 bg-slate-950/70 border border-slate-800 px-2.5 py-1 rounded-full text-[10px] text-red-400 font-mono">
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                        AI SCANNER ACTIVE
+                      </div>
+                      <div className="w-8 h-8 border-t-2 border-r-2 border-red-500/80 rounded-tr-lg" />
+                    </div>
+
+                    {/* Center Crosshairs & Targeting Reticle */}
+                    <div className="self-center flex flex-col items-center">
+                      {detectedThreatAlert && (
+                        <div className="mb-2 px-3 py-1 rounded-full bg-red-600/90 text-white font-bold text-xs shadow-lg animate-bounce border border-red-400">
+                          {detectedThreatAlert}
+                        </div>
+                      )}
+                      <div className="w-48 h-48 sm:w-64 sm:h-64 border border-red-500/30 rounded-2xl relative flex items-center justify-center">
+                        <div className="w-4 h-4 border border-red-400/60 rounded-full" />
+                        <div className="absolute w-full h-[1px] bg-red-500/20" />
+                        <div className="absolute h-full w-[1px] bg-red-500/20" />
+                        {/* Animated scanning line */}
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent animate-pulse" />
+                      </div>
+                      <span className="text-[11px] text-slate-300 font-medium bg-black/60 px-3 py-1 rounded-full mt-2 border border-slate-800">
+                        Align crime or hazard scene inside viewfinder
+                      </span>
+                    </div>
+
+                    {/* Bottom Corner Brackets */}
+                    <div className="flex justify-between items-end">
+                      <div className="w-8 h-8 border-b-2 border-l-2 border-red-500/80 rounded-bl-lg" />
+                      <div className="text-[10px] text-slate-400 font-mono bg-black/60 px-2 py-0.5 rounded">
+                        ENCRYPTION: AES-256 GCM
+                      </div>
+                      <div className="w-8 h-8 border-b-2 border-r-2 border-red-500/80 rounded-br-lg" />
+                    </div>
                   </div>
-                  <div className="w-8 h-8 border-t-2 border-r-2 border-red-500/80 rounded-tr-lg" />
                 </div>
+              )}
 
-                {/* Center Crosshairs & Targeting Reticle */}
-                <div className="self-center flex flex-col items-center">
-                  {detectedThreatAlert && (
-                    <div className="mb-2 px-3 py-1 rounded-full bg-red-600/90 text-white font-bold text-xs shadow-lg animate-bounce border border-red-400">
-                      {detectedThreatAlert}
+              {/* Camera Error Fallback */}
+              {cameraError && (
+                <div className="p-8 text-center max-w-md">
+                  <div className="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 mx-auto mb-3">
+                    <AlertTriangle className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-sm font-bold text-white mb-1">Camera Feed Unavailable</h3>
+                  <p className="text-xs text-slate-400 mb-4">{cameraError}</p>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<Upload className="w-4 h-4" />}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    Upload Scene Photo
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Post-Capture View: Photo Preview + Structured Analysis */
+            <div className="p-4 space-y-3">
+              {/* Photo Preview Container */}
+              <div className="relative w-full max-h-[220px] sm:max-h-[260px] rounded-xl overflow-hidden bg-black flex items-center justify-center border border-slate-800 shadow-inner">
+                <img
+                  src={capturedImage}
+                  alt="Captured Scene"
+                  className="w-full h-full object-contain max-h-[220px] sm:max-h-[260px]"
+                />
+
+                {/* Scanning Animation Overlay */}
+                {isAnalyzing && (
+                  <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10">
+                    <div className="relative w-16 h-16 mb-3">
+                      <div className="absolute inset-0 rounded-full border-4 border-red-500/20 border-t-red-500 animate-spin" />
+                      <div className="absolute inset-2 rounded-full border-4 border-brand-500/20 border-b-brand-400 animate-spin [animation-direction:reverse]" />
+                      <div className="absolute inset-0 flex items-center justify-center text-white">
+                        <Sparkles className="w-5 h-5 text-red-400 animate-pulse" />
+                      </div>
+                    </div>
+                    <div className="text-sm font-bold text-white mb-1">AI Scene Verification</div>
+                    <p className="text-xs text-red-300 font-mono animate-pulse">{analysisStep}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Analysis Result Card */}
+              {analysisResult && (
+                <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2.5 shadow-md">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        AI Verified ({analysisResult.confidence}%)
+                      </span>
+                      {analysisResult.analysisSource === 'gemini-vision' && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-sky-500/20 text-sky-300 border border-sky-500/30 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-sky-300" />
+                          Gemini Vision AI
+                        </span>
+                      )}
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-600/20 text-brand-300 border border-brand-500/30">
+                        {analysisResult.category}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      Severity Level {analysisResult.severity}/4
+                    </span>
+                  </div>
+
+                  <h4 className="text-sm font-bold text-white">{analysisResult.title}</h4>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    {analysisResult.description}
+                  </p>
+
+                  {/* Visible Facts (Objective Observations) */}
+                  {analysisResult.visibleObservations && analysisResult.visibleObservations.length > 0 && (
+                    <div className="pt-1 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Visible Facts (Objective):
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {analysisResult.visibleObservations.map((obs, i) => (
+                          <span
+                            key={i}
+                            className="text-[10px] px-2 py-0.5 rounded bg-slate-800/90 text-slate-200 border border-slate-700"
+                          >
+                            👁️ {obs}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
-                  <div className="w-48 h-48 sm:w-64 sm:h-64 border border-red-500/30 rounded-2xl relative flex items-center justify-center">
-                    <div className="w-4 h-4 border border-red-400/60 rounded-full" />
-                    <div className="absolute w-full h-[1px] bg-red-500/20" />
-                    <div className="absolute h-full w-[1px] bg-red-500/20" />
-                    {/* Animated scanning line */}
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent animate-pulse" />
-                  </div>
-                  <span className="text-[11px] text-slate-300 font-medium bg-black/60 px-3 py-1 rounded-full mt-2 border border-slate-800">
-                    Align crime or hazard scene inside viewfinder
-                  </span>
-                </div>
 
-                {/* Bottom Corner Brackets */}
-                <div className="flex justify-between items-end">
-                  <div className="w-8 h-8 border-b-2 border-l-2 border-red-500/80 rounded-bl-lg" />
-                  <div className="text-[10px] text-slate-400 font-mono bg-black/60 px-2 py-0.5 rounded">
-                    ENCRYPTION: AES-256 GCM
-                  </div>
-                  <div className="w-8 h-8 border-b-2 border-r-2 border-red-500/80 rounded-br-lg" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Camera Error Fallback */}
-          {!capturedImage && cameraError && (
-            <div className="p-8 text-center max-w-md">
-              <div className="w-12 h-12 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 mx-auto mb-3">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <h3 className="text-sm font-bold text-white mb-1">Camera Feed Unavailable</h3>
-              <p className="text-xs text-slate-400 mb-4">{cameraError}</p>
-              <Button
-                variant="primary"
-                size="sm"
-                leftIcon={<Upload className="w-4 h-4" />}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                Upload Scene Photo
-              </Button>
-            </div>
-          )}
-
-          {/* Captured Image / Analysis View */}
-          {capturedImage && (
-            <div className="relative w-full h-full flex items-center justify-center bg-black">
-              <img
-                src={capturedImage}
-                alt="Captured Scene"
-                className="w-full h-full object-contain max-h-[420px]"
-              />
-
-              {/* Scanning Animation Overlay */}
-              {isAnalyzing && (
-                <div className="absolute inset-0 bg-slate-950/75 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center">
-                  <div className="relative w-20 h-20 mb-4">
-                    <div className="absolute inset-0 rounded-full border-4 border-red-500/20 border-t-red-500 animate-spin" />
-                    <div className="absolute inset-2 rounded-full border-4 border-brand-500/20 border-b-brand-400 animate-spin [animation-direction:reverse]" />
-                    <div className="absolute inset-0 flex items-center justify-center text-white">
-                      <Sparkles className="w-6 h-6 text-red-400 animate-pulse" />
+                  {/* Contextual Interpretations / Possible Indicators */}
+                  {analysisResult.possibleIndicators && analysisResult.possibleIndicators.length > 0 && (
+                    <div className="pt-1 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Safety Assessment & Context:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {analysisResult.possibleIndicators.map((ind, i) => (
+                          <span
+                            key={i}
+                            className="text-[10px] px-2 py-0.5 rounded bg-amber-950/40 text-amber-300 border border-amber-800/50"
+                          >
+                            ⚠️ {ind}
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-sm font-bold text-white mb-1">AI Scene Verification</div>
-                  <p className="text-xs text-red-300 font-mono animate-pulse">{analysisStep}</p>
+                  )}
+
+                  {/* Consolidated Indicators (Fallback) */}
+                  {(!analysisResult.visibleObservations || analysisResult.visibleObservations.length === 0) &&
+                    analysisResult.indicators &&
+                    analysisResult.indicators.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {analysisResult.indicators.map((ind, i) => (
+                          <span
+                            key={i}
+                            className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700"
+                          >
+                            ✓ {ind}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                 </div>
               )}
             </div>
           )}
         </div>
 
-        {/* Bottom Controls / Analysis Result */}
-        <div className="p-4 bg-slate-950 border-t border-slate-800 shrink-0">
+        {/* Sticky Bottom Controls / Action Bar */}
+        <div className="p-3 sm:p-4 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 shrink-0 sticky bottom-0 z-20">
           {!capturedImage ? (
             /* Live Camera Control Buttons */
             <div className="flex items-center justify-between gap-3">
@@ -774,66 +866,24 @@ export function AICrimeCameraModal({ isOpen, onClose, onAutoFill }: AICrimeCamer
                 Flip
               </Button>
             </div>
-          ) : analysisResult ? (
-            /* Analysis Result & Auto-fill Action */
-            <div className="space-y-3 animate-in fade-in duration-200">
-              <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" />
-                      AI Verified ({analysisResult.confidence}%)
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-brand-600/20 text-brand-300 border border-brand-500/30">
-                      {analysisResult.category}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-slate-400 font-mono">
-                    Severity Level {analysisResult.severity}/4
-                  </span>
-                </div>
-
-                <h4 className="text-sm font-bold text-white">{analysisResult.title}</h4>
-                <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
-                  {analysisResult.description}
-                </p>
-
-                {analysisResult.indicators && analysisResult.indicators.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 pt-1">
-                    {analysisResult.indicators.map((ind, i) => (
-                      <span
-                        key={i}
-                        className="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700"
-                      >
-                        ✓ {ind}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="flex items-center justify-between gap-3">
-                <Button variant="ghost" size="sm" onClick={handleRetake}>
-                  Retake Photo
-                </Button>
-
-                <Button
-                  variant="primary"
-                  size="md"
-                  leftIcon={<Sparkles className="w-4 h-4 text-amber-300" />}
-                  rightIcon={<ArrowRight className="w-4 h-4" />}
-                  onClick={handleConfirmAutoFill}
-                  className="bg-gradient-to-r from-red-600 to-brand-600 hover:from-red-500 hover:to-brand-500 text-white font-bold shadow-lg shadow-red-600/25"
-                >
-                  Auto-fill Complain & Attach Photo
-                </Button>
-              </div>
-            </div>
           ) : (
-            /* Loading State */
-            <div className="flex items-center justify-center py-2 text-xs text-slate-400">
-              <LoadingSpinner size="sm" className="mr-2" />
-              Processing visual crime indicators...
+            /* Post-Capture Actions (Always visible!) */
+            <div className="flex items-center justify-between gap-3">
+              <Button variant="ghost" size="sm" onClick={handleRetake} disabled={isAnalyzing}>
+                Retake Photo
+              </Button>
+
+              <Button
+                variant="primary"
+                size="md"
+                leftIcon={<Sparkles className="w-4 h-4 text-amber-300" />}
+                rightIcon={<ArrowRight className="w-4 h-4" />}
+                onClick={handleConfirmAutoFill}
+                disabled={isAnalyzing || !analysisResult}
+                className="bg-gradient-to-r from-red-600 to-brand-600 hover:from-red-500 hover:to-brand-500 text-white font-bold shadow-lg shadow-red-600/25"
+              >
+                {isAnalyzing ? 'Analyzing Image...' : 'Auto-fill Complain & Attach Photo'}
+              </Button>
             </div>
           )}
         </div>

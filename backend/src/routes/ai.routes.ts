@@ -10,8 +10,8 @@ import {
 
 export const aiRouter = Router();
 
-// POST /api/v1/ai/analyze-crime — camera scene scanning & verification
-aiRouter.post('/analyze-crime', async (req, res) => {
+// POST /api/v1/ai/analyze-crime & /api/v1/ai/analyze-image — camera scene scanning & verification
+const handleAnalyzeImage = async (req: any, res: any) => {
   try {
     const { imageBase64 = '', mimeType = 'image/jpeg', visualHints } = req.body;
     if (!imageBase64 || imageBase64.length < 50) {
@@ -23,7 +23,10 @@ aiRouter.post('/analyze-crime', async (req, res) => {
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }
-});
+};
+
+aiRouter.post('/analyze-crime', handleAnalyzeImage);
+aiRouter.post('/analyze-image', handleAnalyzeImage);
 
 // POST /api/v1/ai/categorize — public & authority
 aiRouter.post('/categorize', async (req, res) => {

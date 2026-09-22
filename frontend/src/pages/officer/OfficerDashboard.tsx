@@ -14,6 +14,7 @@ import {
   Layers,
   FileText,
   MapPin,
+  Radio,
 } from 'lucide-react';
 import {
   Card,
@@ -129,6 +130,40 @@ export function OfficerDashboard() {
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-brand-400' : ''}`} />
           </button>
         </div>
+      </div>
+
+      {/* Safe Passage Real-Time Radar Banner */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/60 via-slate-900 to-slate-950 border border-cyan-500/40 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
+            <Radio className="w-5 h-5 animate-pulse" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-white uppercase tracking-wider">
+                Safe Passage Live Radar
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                VIRTUAL ESCORTS
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 mt-0.5">
+              Live tracking for citizens traversing high-incident Red Zones with dead-man stoppage detection.
+            </p>
+          </div>
+        </div>
+
+        <Link to="/officer/escorts">
+          <Button
+            variant="primary"
+            size="sm"
+            leftIcon={<Radio className="w-3.5 h-3.5" />}
+            className="bg-gradient-to-r from-cyan-600 to-brand-600 hover:from-cyan-500 hover:to-brand-500 text-white font-bold text-xs shadow-lg shadow-cyan-600/30 shrink-0"
+          >
+            Launch Radar Console
+          </Button>
+        </Link>
       </div>
 
       {/* Verified Statistics Grid */}

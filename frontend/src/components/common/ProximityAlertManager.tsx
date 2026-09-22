@@ -59,6 +59,31 @@ export function ProximityAlertManager() {
 
   const [activeAlert, setActiveAlert] = useState<ProximityIncident | null>(null);
 
+  // Store dismissed incident IDs for this session to completely prevent alert spam
+  const dismissedIncidentsRef = useRef<Set<string>>(
+    (() => {
+      try {
+        const stored = sessionStorage.getItem('proximity_dismissed_incidents');
+        return stored ? new Set(JSON.parse(stored)) : new Set();
+      } catch {
+        return new Set();
+      }
+    })()
+  );
+
+  const handleDismissAlert = (incidentId?: string) => {
+    if (incidentId) {
+      dismissedIncidentsRef.current.add(incidentId);
+      try {
+        sessionStorage.setItem(
+          'proximity_dismissed_incidents',
+          JSON.stringify(Array.from(dismissedIncidentsRef.current))
+        );
+      } catch {}
+    }
+    setActiveAlert(null);
+  };
+
   // Store alerted incident IDs with timestamp to prevent duplicate notifications
   const alertedIncidentsRef = useRef<Map<string, number>>(new Map());
   const lastCheckCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
@@ -79,8 +104,12 @@ export function ProximityAlertManager() {
           const incidents: ProximityIncident[] = res.data.data;
           const now = Date.now();
 
-          // Find closest incident that hasn't been alerted within the last 30 minutes
+          // Find closest incident that has NOT been dismissed or alerted recently
           for (const inc of incidents) {
+            if (dismissedIncidentsRef.current.has(inc.id)) {
+              continue; // Permanently skip dismissed alert for this session
+            }
+
             const lastAlerted = alertedIncidentsRef.current.get(inc.id);
             const cooldownMs = 30 * 60 * 1000; // 30 mins
 
@@ -212,8 +241,8 @@ export function ProximityAlertManager() {
           </div>
 
           <button
-            onClick={() => setActiveAlert(null)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors"
+            onClick={() => handleDismissAlert(activeAlert.id)}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors cursor-pointer"
             aria-label="Dismiss Alert"
           >
             <X className="w-4 h-4" />
@@ -233,17 +262,17 @@ export function ProximityAlertManager() {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setActiveAlert(null)}
-              className="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white text-xs font-medium transition-colors"
+              onClick={() => handleDismissAlert(activeAlert.id)}
+              className="px-2.5 py-1 rounded-lg text-slate-400 hover:text-white text-xs font-medium transition-colors cursor-pointer"
             >
               Dismiss
             </button>
             <button
               onClick={() => {
-                setActiveAlert(null);
+                handleDismissAlert(activeAlert.id);
                 navigate('/map');
               }}
-              className="flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-colors shadow-md shadow-amber-500/20"
+              className="flex items-center gap-1 px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition-colors shadow-md shadow-amber-500/20 cursor-pointer"
             >
               <span>View Map</span>
               <ArrowRight className="w-3 h-3" />

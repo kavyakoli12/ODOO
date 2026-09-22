@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
-dotenv.config();
+dotenv.config({ override: true });
 
 // If running in Render cloud environment and NODE_ENV is unset, default to production
 if (process.env.RENDER && !process.env.NODE_ENV) {
@@ -17,6 +17,7 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(16).default('safemap_dev_refresh_secret_key_32_characters_long_456'),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
+  GEMINI_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

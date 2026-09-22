@@ -203,6 +203,92 @@ This document serves as the master record of all structural, architectural, back
 - **Backend Non-Threat Classification**:
   - In [ai.service.ts](file:///c:/Users/kavya/Desktop/kavya/odoo/backend/src/services/ai.service.ts), when no weapon is detected, the AI generates a reassuring `"Citizen Photographic Evidence / General Observation"` report under `Other Incident` with Severity Level 1, explicitly confirming zero weapons or physical threats in the scene.
 - **Form Category Auto-Fill Fix**:
-  - In [ReportIncidentPage.tsx](file:///c:/Users/kavya/Desktop/kavya/odoo/frontend/src/pages/citizen/ReportIncidentPage.tsx), removed the forced fallback to `assault` so benign community observations correctly select their matching category.
 
+### 17. Brand Identity Overhaul: Custom Trinetra Logo Integration
+- **Emblem Generation & Asset Pipeline**:
+  - Processed user's custom "Three Eyes with Celtic Knot" emblem (`media_1789906646573.jpg`), representing the all-seeing third eye of vigilance and truth (Trinetra).
+  - Generated high-resolution transparent PNG with anti-aliased luminous edges (`frontend/public/logo.png`), square dark badge (`frontend/public/logo-square.jpg`), circular avatar (`frontend/public/logo-round.png`), and multi-resolution favicons (`frontend/public/favicon.png`, `frontend/public/favicon.ico`).
+- **Reusable `TrinetraLogo` Component**:
+  - Created [TrinetraLogo.tsx](file:///c:/Users/kavya/Desktop/kavya/odoo/frontend/src/components/common/TrinetraLogo.tsx) supporting multiple responsive size tokens (`xs`, `sm`, `md`, `lg`, `xl`, `2xl`), display variants (`badge`, `glow`, `plain`), optional brand typography, and subtitle labels.
+- **Site-Wide Application**:
+  - **Browser Tab**: Updated [index.html](file:///c:/Users/kavya/Desktop/kavya/odoo/frontend/index.html) with custom favicon and apple-touch-icon.
+  - **Navbar Header**: In [Navbar.tsx](file:///c:/Users/kavya/Desktop/kavya/odoo/frontend/src/components/layout/Navbar.tsx), replaced generic shield with brand logo badge and title.
+  - **Navigation Drawer**: In [Sidebar.tsx](file:///c:/Users/kavya/Desktop/kavya/odoo/frontend/src/components/layout/Sidebar.tsx), updated drawer header branding with the new logo.
+  - **Footer**: In [Footer.tsx](file:///c:/Users/kavya/Desktop/kavya/odoo/frontend/src/components/layout/Footer.tsx), integrated the Trinetra logo into the platform origins and motive column.
+  - **Authentication Screens**: In [LoginPage.tsx](file:///c:/Users/kavya/Desktop/kavya/odoo/frontend/src/pages/auth/LoginPage.tsx) and [RegisterPage.tsx](file:///c:/Users/kavya/Desktop/kavya/odoo/frontend/src/pages/auth/RegisterPage.tsx), replaced generic placeholder icons with prominent XL Trinetra emblems.
+  - **Landing Hero Section**: In [HomePage.tsx](file:///c:/Users/kavya/Desktop/kavya/odoo/frontend/src/pages/HomePage.tsx), added a glowing Trinetra shield showcase card in the primary hero banner.
+  - **AI Camera Scanner**: In [AICrimeCameraModal.tsx](file:///c:/Users/kavya/Desktop/kavya/odoo/frontend/src/components/incidents/AICrimeCameraModal.tsx) and [ReportIncidentPage.tsx](file:///c:/Users/kavya/Desktop/kavya/odoo/frontend/src/pages/citizen/ReportIncidentPage.tsx), branded the live HUD and camera banner with the Trinetra eye symbol.
 
+---
+
+## 18. Google Gemini 2.5 Flash Vision Camera Integration
+- **Backend Model & API Integration**:
+  - Connected `analyzeCrimeImage` in [ai.service.ts](file:///c:/Users/kavya/Desktop/kavya/odoo/backend/src/services/ai.service.ts) to Google Gemini Vision (`gemini-2.5-flash:generateContent`).
+  - Added [env.ts](file:///c:/Users/kavya/Desktop/kavya/odoo/backend/src/config/env.ts) `dotenv.config({ override: true })` and Zod validation schema for `GEMINI_API_KEY`, ensuring backend environment variables properly load and protect secret API keys from frontend exposure.
+  - Added route aliases `/api/v1/ai/analyze-crime` and `/api/v1/ai/analyze-image` in [ai.routes.ts](file:///c:/Users/kavya/Desktop/kavya/odoo/backend/src/routes/ai.routes.ts).
+- **Ethical Analysis & Strict Separation of Facts from Interpretation**:
+  - Implemented strict system instructions forbidding labeling individuals as criminals or suspects based on appearance, clothing, race, or demeanor.
+  - Structured output into `visibleObservations` (objective physical elements seen in the photo) and `possibleIndicators` (contextual interpretations, potential risks, and safety factors).
+  - Confidence score normalized to integer 0–100, severity rated 1 (low/informational) to 4 (critical).
+- **Graceful Error Handling & Fallback**:
+  - If Gemini API fails or rate-limits, the system logs a warning and smoothly falls back to the built-in Trinetra Vision Engine so user workflow never breaks.
+- **Frontend Camera Modal UI Enhancements**:
+  - In [AICrimeCameraModal.tsx](file:///c:/Users/kavya/Desktop/kavya/odoo/frontend/src/components/incidents/AICrimeCameraModal.tsx), added `Gemini Vision AI` badge to the review panel when source is `gemini-vision`.
+  - Added dedicated UI sections displaying **Visible Facts (Objective Observations)** and **Safety Assessment & Context** alongside the existing auto-fill and evidence attachment workflow.
+
+---
+
+## 19. Camera Modal & Report Page Scrollability & Sticky Action Bar
+- **AICrimeCameraModal Scrollable Body & Sticky Action Footer**:
+  - Replaced rigid layout with a scrollable modal body (`flex-1 overflow-y-auto overscroll-contain`).
+  - Styled the action footer ("Retake Photo", "Auto-fill Complain & Attach Photo") as `sticky bottom-0 z-20 shrink-0 bg-slate-950/95 backdrop-blur-md border-t border-slate-800 shadow-2xl`, ensuring the action buttons are permanently pinned into view and never pushed off-screen.
+  - Adjusted post-capture photo preview height (`max-h-[220px] sm:max-h-[260px]`) so analysis details and facts can be easily read and scrolled on compact laptop and mobile displays.
+- **Report Incident Page Smooth Scroll & Floating Quick-Submit Bar**:
+  - In [ReportIncidentPage.tsx](file:///c:/Users/kavya/Desktop/kavya/odoo/frontend/src/pages/citizen/ReportIncidentPage.tsx), added automatic smooth scrolling (`scrollIntoView({ behavior: 'smooth' })`) directly to the submit section when camera auto-fill completes.
+  - Added bottom padding (`pb-28`) to prevent form actions from being clipped by viewport edges or mobile bottom navs.
+  - Added a floating sticky quick-submit bar on-screen with "Review Form" and "Submit Report Now" buttons whenever the report is populated by AI vision.
+
+---
+
+## 20. Trinetra Safe Passage Escort & Dead-Man's Timer (Red Zone Live Protection)
+- **Automatic Boundary Handshake (Auto-Start & Auto-Stop)**:
+  - Continuously compares citizen GPS coordinates against geofenced Red Zones (configured high-incident clusters e.g. Connaught Place, Kashmere Gate, Jahangirpuri, Seelampur) using the Haversine formula.
+  - **Zone Entry**: Automatically triggers a subtle slide-up prompt (`SafeCorridorBanner.tsx`): *"⚠️ You have entered a high-incident area ([Zone Name]). Would you like to activate Safe Passage Escort until you exit?"*
+  - **Zone Exit**: As soon as the citizen's GPS crosses out of the red zone perimeter, tracking automatically ends with a reassuring notification: *"✅ You have safely cleared the high-risk zone. Tracking stopped."*
+- **Dead-Man's Timer & Stoppage Alert**:
+  - Monitors citizen velocity and stationary dwell time inside high-risk zones.
+  - If a citizen remains stationary (movement $< 15\text{m}$) for $> 4\text{ minutes}$, the system engages the emergency safety protocol:
+    - Triggers hardware vibration (`navigator.vibrate([400, 200, 400, 200, 800])`) and high-frequency Web Audio warning chimes.
+    - Displays an urgent modal: *"Are you safe? Check in within 60 seconds."*
+    - Real-time 60-second countdown with a prominent "Yes, I am Safe" check-in button and an "Immediate SOS Distress" trigger.
+    - Includes an on-screen "Test Stoppage" demo control on the citizen HUD capsule for rapid verification without waiting 4 minutes.
+- **Dynamic Officer Marker State Transitions**:
+  - **Cyan (Monitoring)**: Citizen actively navigating red zone with steady movement; coordinates broadcast over WebSocket (`escort:location`).
+  - **Amber (Stoppage Warning)**: Stationary $> 4$ minutes; dead-man countdown actively ticking (`escort:stoppage_warning`).
+  - **Flashing Red (Immediate Distress Alert)**: Dead-man countdown expired without response or citizen pressed SOS (`escort:distress`); displays glowing red pulsing radar rings and alarm badges.
+- **Dedicated Officer Escort Console (`/officer/escorts`)**:
+  - Created `SafeCorridorsPage.tsx` with a full-screen interactive Leaflet tactical radar map.
+  - Displays high-incident red zone geofenced circular perimeters with risk ratings and active citizen count.
+  - Visualizes active escorts with custom animated radar beacons, direction heading, last ping timestamp, and real-time breadcrumb polyline paths.
+  - Features an active escort sidebar feed with filter tabs (`All`, `Distress`, `Warning`, `Monitoring`), quick-focus camera buttons, and a 1-click **Dispatch Patrol Unit** modal to assign nearby PCR vehicles and responders.
+- **Backend Architecture & WebSocket Lifecycle**:
+  - Created `SafeEscortSession.ts` Mongoose model storing user details, coordinates, breadcrumbs, stoppage timestamps, and status transitions.
+  - Enhanced `backend/src/socket.ts` with real-time socket events: `escort:start`, `escort:location`, `escort:stoppage_warning`, `escort:checkin_safe`, `escort:distress`, and `escort:exit_zone`. All updates are broadcast instantly to officers joined to the `role:officer` room.
+  - Added REST endpoints in `escort.routes.ts` (`GET /api/v1/escorts/active`, `POST /api/v1/escorts/:sessionId/dispatch`, `GET /api/v1/escorts/danger-zones`) mounted in `api.router.ts`.
+- **Navigation & Dashboard Integration**:
+  - Added direct link to `Safe Passage Escorts` in `Sidebar.tsx` for officers.
+  - Added glowing radar alert banner in `OfficerDashboard.tsx` linking directly to `/officer/escorts`.
+  - Mounted `SafeCorridorBanner` globally in `AppShell.tsx` for seamless background geofence protection across all pages.
+
+---
+
+## 21. Officer Radar Map Tile Watermark Fix & Dynamic Layer Toggle
+- **Eliminated "API KEY REQUIRED" CARTO Watermarks**:
+  - Replaced the unauthenticated CARTO `dark_all` tile endpoint in `SafeCorridorsPage.tsx` with `TACTICAL_DARK_TILE_CONFIG` powered by Esri World Dark Gray Base (`https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}`).
+  - Completely removed all `"API KEY REQUIRED carto.com/basemaps/apikey"` diagonal grid watermarks across all zoom levels.
+  - Added `maxNativeZoom: 16` and `maxZoom: 19` to allow seamless zoom interpolation into street-level detail without tile loading failures.
+- **Added Tactical Layer Switcher**:
+  - Added an interactive layer toggle in the radar map header (`[Tactical Dark]` / `[Street Map]`).
+  - Allows officers to instantly switch between dark stealth tactical radar and detailed street-level navigation (`MAP_TILE_CONFIG`).
+- **Dynamic City Auto-Centering**:
+  - Updated `SafeCorridorsPage.tsx` initial map centering logic to auto-focus on the citizen's actual city/incident coordinates (e.g. Ahmedabad, Asarva Taluka) instead of defaulting exclusively to Delhi.

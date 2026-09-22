@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/lib/api';
 import {
@@ -36,6 +36,7 @@ import { toLocalDateTimeString } from '@/lib/utils';
 
 export function ReportIncidentPage() {
   const { showToast } = useToast();
+  const submitButtonRef = useRef<HTMLDivElement>(null);
 
   const [categories, setCategories] = useState<IncidentCategory[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
@@ -140,6 +141,11 @@ export function ReportIncidentPage() {
       'AI Crime Scan Complete'
     );
   };
+
+  // Ensure page starts at top header
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
 
   useEffect(() => {
     const fetchCats = async () => {
@@ -300,7 +306,7 @@ export function ReportIncidentPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto py-6 px-4 space-y-6">
+    <div className="max-w-3xl mx-auto py-6 pb-28 px-4 space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -597,24 +603,72 @@ export function ReportIncidentPage() {
             </div>
           </CardContent>
 
-          <CardFooter className="flex items-center justify-end gap-3">
-            <Link to="/citizen">
-              <Button type="button" variant="outline" size="md">
-                Cancel
+          <div ref={submitButtonRef}>
+            <CardFooter className="flex items-center justify-end gap-3">
+              <Link to="/citizen">
+                <Button type="button" variant="outline" size="md">
+                  Cancel
+                </Button>
+              </Link>
+              <Button
+                type="submit"
+                variant="primary"
+                size="md"
+                isLoading={isSubmitting}
+                rightIcon={<ArrowRight className="w-4 h-4" />}
+                className="bg-gradient-to-r from-red-600 to-brand-600 hover:from-red-500 hover:to-brand-500 text-white font-bold shadow-lg shadow-red-600/30"
+              >
+                Submit Report
               </Button>
-            </Link>
-            <Button
-              type="submit"
-              variant="primary"
-              size="md"
-              isLoading={isSubmitting}
-              rightIcon={<ArrowRight className="w-4 h-4" />}
-            >
-              Submit Report
-            </Button>
-          </CardFooter>
+            </CardFooter>
+          </div>
         </Card>
       </form>
+
+      {/* Sticky Quick-Submit Floating Bar — Always on-screen after AI auto-fill */}
+      {aiVerificationData && !isSubmitting && (
+        <div className="sticky bottom-4 z-40 p-3 sm:p-4 rounded-2xl bg-slate-900/95 border border-emerald-500/60 shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom duration-300">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+            <div className="truncate">
+              <div className="text-xs font-bold text-white truncate">
+                AI Vision Auto-Fill Complete
+              </div>
+              <div className="text-[11px] text-emerald-400 font-mono truncate">
+                Evidence attached • Location verified • Ready to submit
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => submitButtonRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+              className="hidden sm:inline-flex text-xs text-slate-300"
+            >
+              Review Form
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              isLoading={isSubmitting}
+              rightIcon={<ArrowRight className="w-4 h-4" />}
+              onClick={() => {
+                const formEl = document.querySelector('form');
+                if (formEl) {
+                  formEl.requestSubmit();
+                }
+              }}
+              className="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold shadow-lg shadow-emerald-600/30"
+            >
+              Submit Report Now
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Trinetra AI Live Camera Modal */}
       <AICrimeCameraModal

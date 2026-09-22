@@ -26,7 +26,8 @@ import { InvestigationDetailPage } from '@/pages/officer/InvestigationDetailPage
 import { AnalyticsDashboard } from '@/pages/officer/AnalyticsDashboard';
 import { AlertManagementPage } from '@/pages/officer/AlertManagementPage';
 import { OdooIntegrationDashboard } from '@/pages/officer/OdooIntegrationDashboard';
-import { initSocket, disconnectSocket } from '@/lib/socket';
+import { SafeCorridorsPage } from '@/pages/officer/SafeCorridorsPage';
+import { initSocket } from '@/lib/socket';
 
 
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
@@ -51,6 +52,18 @@ function ReportRedirect() {
   return <Navigate to="/citizen/report" replace />;
 }
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.body.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname]);
+
+  return null;
+}
+
 function AppContent() {
   const location = useLocation();
   const { initAuth, isAuthenticated, user } = useAuthStore();
@@ -59,13 +72,9 @@ function AppContent() {
     initAuth();
   }, [initAuth]);
 
-  // Init/disconnect socket on auth state change
+  // Init socket on mount and refresh with auth token on auth state change
   useEffect(() => {
-    if (isAuthenticated) {
-      initSocket();
-    } else {
-      disconnectSocket();
-    }
+    initSocket();
   }, [isAuthenticated]);
 
   // Enable slide-out navigation for all authenticated users or portal routes
@@ -78,6 +87,9 @@ function AppContent() {
 
   return (
     <>
+      {/* Ensures every route starts cleanly at top header */}
+      <ScrollToTop />
+
       {/* Phase 10: Global alert banner — always visible at the top */}
       <AlertBanner />
 
@@ -192,6 +204,15 @@ function AppContent() {
               element={
                 <ProtectedRoute allowedRoles={['officer', 'admin']}>
                   <PublicMapPage />
+                </ProtectedRoute>
+              }
+            />
+            {/* Phase 13: Trinetra Safe Passage (Virtual Escorts in Red Zones) */}
+            <Route
+              path="/officer/escorts"
+              element={
+                <ProtectedRoute allowedRoles={['officer', 'admin']}>
+                  <SafeCorridorsPage />
                 </ProtectedRoute>
               }
             />

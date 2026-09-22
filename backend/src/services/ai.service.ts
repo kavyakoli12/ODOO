@@ -311,6 +311,8 @@ export interface CrimeVisionAnalysis {
   categorySlug: string;
   title: string;
   description: string;
+  visibleObservations?: string[];
+  possibleIndicators?: string[];
   severity: number;
   indicators: string[];
   suggestedAction: string;
@@ -327,8 +329,10 @@ export interface VisualHints {
 
 /**
  * 6. Trinetra AI Crime Camera Vision Analyzer
- * Scans captured image from webcam/mobile camera, detects weapons, crimes/hazards,
- * verifies visual indicators, and generates structured complaint details.
+ * Integrates Google Gemini Vision to evaluate camera and photo evidence.
+ * Explicitly separates objective physical observations from interpretation.
+ * Does not label anyone a criminal based on appearance.
+ * Safely falls back to the built-in Trinetra vision engine if API is unavailable.
  */
 export async function analyzeCrimeImage(
   imageBase64: string,
@@ -346,7 +350,109 @@ export async function analyzeCrimeImage(
     cleanBase64 = parts[1];
   }
 
-  // 1. Check for Direct Weapon Detection (Knife / Blade / Firearm)
+  // 1. Primary: Google Gemini Vision Analysis via Backend Endpoint
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (apiKey && cleanBase64.length > 100) {
+    try {
+      const prompt = `You are Trinetra's AI Public Safety & Incident Vision Analyzer.
+Analyze this photographic evidence captured from a citizen camera objectively, carefully, and accurately.
+
+CRITICAL ETHICAL & ANALYSIS GUIDELINES:
+1. SEPARATE OBJECTIVE FACTS FROM INTERPRETATION:
+   - "visibleObservations": strictly report physical elements visible in the frame (e.g., objects, setting, vehicle make/type, physical items, environmental conditions).
+   - "possibleIndicators": contextual interpretations, potential safety concerns, or hazards.
+2. DO NOT LABEL ANYONE A CRIMINAL OR SUSPECT based on appearance, clothing, race, ethnicity, or posture.
+3. If weapons (knives, blades, firearms, bludgeons) or active dangerous situations (fire, collision, structural hazard, physical altercation) are observed, report them factually without sensationalism.
+4. If the scene depicts ordinary citizens, peaceful behavior, or an everyday environment with no immediate danger, clearly state that no weapons or threats are detected, set isCrimeOrHazard to false, severity to 1, and category to "Other Incident".
+
+Respond ONLY with a valid JSON object matching this schema:
+{
+  "isCrimeOrHazard": boolean,
+  "confidence": number (integer 0 to 100),
+  "category": string (e.g. "Assault", "Vandalism", "Theft & Burglary", "Traffic Incident", "Suspicious Activity", "Hazard", "Other Incident"),
+  "categorySlug": string (one of: "assault", "vandalism", "theft", "traffic-incident", "hazard", "suspicious-activity", "other"),
+  "title": string (concise, professional title of what is observed),
+  "description": string (clear summary separating visible facts from situational context),
+  "visibleObservations": string[] (list of 2 to 4 strictly factual physical elements seen in the image),
+  "possibleIndicators": string[] (list of 1 to 3 contextual interpretations, risks, or safety observations),
+  "indicators": string[] (consolidated list of key findings),
+  "severity": number (integer 1 to 4: 1=Low/Informational, 2=Moderate, 3=High, 4=Critical/Armed Threat),
+  "suggestedAction": string (actionable advice for citizen safety or emergency dispatch)
+}`;
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: prompt },
+                  {
+                    inlineData: {
+                      mimeType: cleanMime,
+                      data: cleanBase64,
+                    },
+                  },
+                ],
+              },
+            ],
+            generationConfig: {
+              responseMimeType: 'application/json',
+              temperature: 0.1,
+            },
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const json = (await response.json()) as any;
+        let rawText = json.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawText) {
+          // Strip markdown code fences if present
+          const fenceMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+          if (fenceMatch) {
+            rawText = fenceMatch[1];
+          }
+          const parsed = JSON.parse(rawText.trim());
+
+          const visibleObservations: string[] = Array.isArray(parsed.visibleObservations)
+            ? parsed.visibleObservations
+            : [];
+          const possibleIndicators: string[] = Array.isArray(parsed.possibleIndicators)
+            ? parsed.possibleIndicators
+            : [];
+          const consolidatedIndicators: string[] = Array.isArray(parsed.indicators) && parsed.indicators.length > 0
+            ? parsed.indicators
+            : [...visibleObservations.slice(0, 2), ...possibleIndicators.slice(0, 2)];
+
+          return {
+            isCrimeOrHazard: Boolean(parsed.isCrimeOrHazard),
+            confidence: Math.min(99, Math.max(50, Math.round(Number(parsed.confidence) || 90))),
+            category: parsed.category || (parsed.isCrimeOrHazard ? 'Suspicious Activity' : 'Other Incident'),
+            categorySlug: parsed.categorySlug || (parsed.isCrimeOrHazard ? 'suspicious-activity' : 'other'),
+            title: parsed.title || 'AI Verified Incident Report',
+            description: parsed.description || 'Scene analyzed via Google Gemini Vision.',
+            visibleObservations,
+            possibleIndicators,
+            severity: Math.min(4, Math.max(1, Math.round(Number(parsed.severity) || 1))),
+            indicators: consolidatedIndicators.length > 0 ? consolidatedIndicators : ['Visual analysis completed'],
+            suggestedAction: parsed.suggestedAction || 'Review report details before submitting.',
+            analysisSource: 'gemini-vision',
+          };
+        }
+      } else {
+        const errJson = await response.json().catch(() => null);
+        console.warn('⚠️ Gemini Vision API responded with status', response.status, errJson);
+      }
+    } catch (err) {
+      console.warn('⚠️ Gemini Vision call failed, safely falling back to Trinetra Vision Engine:', err);
+    }
+  }
+
+  // 2. Fallback: Secondary Local Object/Weapon Verification
   const weaponType = visualHints?.detectedWeapon?.toLowerCase();
   if (weaponType && (weaponType.includes('knife') || weaponType.includes('blade') || weaponType.includes('dagger'))) {
     const conf = visualHints?.confidence || 94;
@@ -357,7 +463,9 @@ export async function analyzeCrimeImage(
       categorySlug: 'assault',
       title: 'Armed Threat / Brandished Knife Detected',
       description:
-        'Trinetra AI Vision identified an active armed threat: an edged metallic knife/blade held in forward hand grip. High-priority physical danger verified with photographic evidence.',
+        'Trinetra Vision identified an active armed threat: an edged metallic knife/blade held in hand. High-priority physical danger verified with photographic evidence.',
+      visibleObservations: ['Edged metallic blade reflection detected', 'Hand grip brandishing verified'],
+      possibleIndicators: ['Active cutting hazard', 'Physical safety threat'],
       severity: 4,
       indicators: [
         'Edged metallic blade reflection detected',
@@ -378,9 +486,11 @@ export async function analyzeCrimeImage(
       confidence: Math.min(99, Math.max(88, conf)),
       category: 'Assault',
       categorySlug: 'assault',
-      title: 'Critical Firearm / Handgun Threat Detected',
+      title: 'Critical Firearm Threat Detected',
       description:
-        'Trinetra AI Vision detected a brandished firearm / handgun in active display. Immediate critical life-safety emergency protocol initiated.',
+        'Trinetra Vision detected a brandished firearm in active display. Immediate critical life-safety emergency protocol initiated.',
+      visibleObservations: ['Firearm silhouette detected', 'Raised weapon posture verified'],
+      possibleIndicators: ['Armed confrontation hazard', 'Level 4 life-threatening situation'],
       severity: 4,
       indicators: [
         'Firearm barrel and grip silhouette detected',
@@ -391,81 +501,6 @@ export async function analyzeCrimeImage(
         'Take immediate cover, stay low, avoid line of sight, and contact Armed Police Triage (Dial 112 / 100).',
       analysisSource: 'trinetra-weapon-vision-engine',
     };
-  }
-
-  // 2. Attempt Gemini 1.5/2.0 Vision API if GEMINI_API_KEY is available
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (apiKey && cleanBase64.length > 100) {
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: `You are Trinetra's AI crime and public safety vision analyzer.
-Inspect this image from a citizen's live camera.
-First, check for any weapons (knives, blades, daggers, firearms, guns, pistols, blunt weapons) held in hand or brandished.
-If a weapon is present, classify as "Assault", categorySlug "assault", severity 4.
-Otherwise, inspect for vandalism, theft, traffic accidents, hazards, or suspicious activity.
-Respond ONLY with a valid JSON object matching this exact structure:
-{
-  "isCrimeOrHazard": true,
-  "confidence": 92,
-  "category": "Assault",
-  "categorySlug": "assault",
-  "title": "Armed Threat / Brandished Knife Detected",
-  "description": "Visual analysis confirms a metallic knife held in hand posing an active physical threat.",
-  "severity": 4,
-  "indicators": ["Edged knife blade visible", "Hand grip brandishing confirmed"],
-  "suggestedAction": "Keep safe distance and notify emergency dispatch."
-}
-Category slugs must be one of: "assault", "vandalism", "theft", "traffic-incident", "hazard", "suspicious-activity".
-Severity must be an integer from 1 (low) to 4 (critical).`,
-                  },
-                  {
-                    inlineData: {
-                      mimeType: cleanMime,
-                      data: cleanBase64,
-                    },
-                  },
-                ],
-              },
-            ],
-            generationConfig: {
-              responseMimeType: 'application/json',
-              temperature: 0.1,
-            },
-          }),
-        }
-      );
-
-      if (response.ok) {
-        const json = (await response.json()) as any;
-        const candidateText = json.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (candidateText) {
-          const parsed = JSON.parse(candidateText);
-          return {
-            isCrimeOrHazard: parsed.isCrimeOrHazard ?? true,
-            confidence: Math.min(99, Math.max(60, parsed.confidence || 88)),
-            category: parsed.category || 'Assault',
-            categorySlug: parsed.categorySlug || 'assault',
-            title: parsed.title || 'AI Verified Incident Report',
-            description: parsed.description || 'Visual crime indicators detected via Trinetra Camera.',
-            severity: Math.min(4, Math.max(1, parsed.severity || 2)),
-            indicators: Array.isArray(parsed.indicators) ? parsed.indicators : ['Visual disturbance detected'],
-            suggestedAction: parsed.suggestedAction || 'Authority verification requested.',
-            analysisSource: 'gemini-vision',
-          };
-        }
-      }
-    } catch (err) {
-      console.warn('⚠️ Gemini Vision call failed, falling back to Trinetra Vision Engine:', err);
-    }
   }
 
   // 3. Trinetra Trained Vision Engine (Strict Weapon & Ambient Verification)

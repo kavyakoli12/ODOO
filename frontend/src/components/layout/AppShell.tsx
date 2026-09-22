@@ -4,6 +4,7 @@ import { Sidebar } from './Sidebar';
 import { MobileBottomNav } from './MobileBottomNav';
 import { Footer } from './Footer';
 import { ProximityAlertManager } from '@/components/common/ProximityAlertManager';
+import { SafeCorridorBanner } from '@/components/common/SafeCorridorBanner';
 
 export interface AppShellProps {
   children: React.ReactNode;
@@ -18,6 +19,9 @@ export function AppShell({ children, showSidebar = false, role = 'citizen' }: Ap
     <div className="min-h-screen flex flex-col bg-surface-dark text-slate-100 pb-16 lg:pb-0">
       {/* Real-Time Proximity Geofencing Alerts (without page refresh) */}
       <ProximityAlertManager />
+
+      {/* Trinetra Safe Passage (Virtual Escort & Dead-Man's Timer in Red Zones) */}
+      <SafeCorridorBanner />
 
       <Navbar onToggleSidebar={showSidebar ? () => setIsSidebarOpen(!isSidebarOpen) : undefined} />
 
