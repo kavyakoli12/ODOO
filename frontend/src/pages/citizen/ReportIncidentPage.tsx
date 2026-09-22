@@ -33,6 +33,7 @@ import { AICrimeCameraModal, AICrimeAnalysisResult, LocationData } from '@/compo
 import { TrinetraLogo } from '@/components/common/TrinetraLogo';
 import type { IncidentCategory, Incident } from '@/types/incident';
 import { toLocalDateTimeString } from '@/lib/utils';
+import { getFastCurrentPosition, cachedReverseGeocode } from '@/lib/geolocation';
 
 export function ReportIncidentPage() {
   const { showToast } = useToast();
@@ -103,30 +104,14 @@ export function ReportIncidentPage() {
       setLatitude(locData.lat);
       setLongitude(locData.lng);
       setAddress(locData.address);
-    } else if ('geolocation' in navigator) {
-      // Fetch device GPS and reverse geocode immediately
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          setLatitude(lat);
-          setLongitude(lng);
-          try {
-            const res = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-              { headers: { 'Accept-Language': 'en' } }
-            );
-            if (res.ok) {
-              const data = await res.json();
-              if (data.display_name) {
-                setAddress(data.display_name);
-              }
-            }
-          } catch {}
-        },
-        () => {},
-        { enableHighAccuracy: true, timeout: 8000 }
-      );
+    } else {
+      // Fetch device location with fast resolution and cached reverse geocoding
+      getFastCurrentPosition({ preferHighAccuracy: false, timeoutMs: 3500 }).then(async (result) => {
+        setLatitude(result.coords.lat);
+        setLongitude(result.coords.lng);
+        const resolvedAddress = await cachedReverseGeocode(result.coords.lat, result.coords.lng);
+        setAddress(resolvedAddress);
+      }).catch(() => {});
     }
 
     setAiVerificationData({

@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui';
 import { api } from '@/lib/api';
 import { TrinetraLogo } from '@/components/common/TrinetraLogo';
+import { getFastCurrentPosition, cachedReverseGeocode } from '@/lib/geolocation';
 
 export interface AICrimeAnalysisResult {
   isCrimeOrHazard: boolean;
@@ -276,36 +277,19 @@ export function AICrimeCameraModal({ isOpen, onClose, onAutoFill }: AICrimeCamer
   }, [facingMode]);
 
   // Fetch GPS Coordinates & Reverse Geocoded Street Address
-  const fetchGPSLocation = useCallback(() => {
-    if (!('geolocation' in navigator)) return;
+  const fetchGPSLocation = useCallback(async () => {
     setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-            { headers: { 'Accept-Language': 'en' } }
-          );
-          if (res.ok) {
-            const data = await res.json();
-            const display = data.display_name || `${lat.toFixed(5)}° N, ${lng.toFixed(5)}° E`;
-            setLocationData({ lat, lng, address: display });
-          } else {
-            setLocationData({ lat, lng, address: `${lat.toFixed(5)}° N, ${lng.toFixed(5)}° E` });
-          }
-        } catch {
-          setLocationData({ lat, lng, address: `${lat.toFixed(5)}° N, ${lng.toFixed(5)}° E` });
-        } finally {
-          setIsLocating(false);
-        }
-      },
-      () => {
-        setIsLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
+    try {
+      const result = await getFastCurrentPosition({ preferHighAccuracy: false, timeoutMs: 3500 });
+      const lat = result.coords.lat;
+      const lng = result.coords.lng;
+      const display = await cachedReverseGeocode(lat, lng);
+      setLocationData({ lat, lng, address: display });
+    } catch {
+      // Graceful fallback without breaking camera
+    } finally {
+      setIsLocating(false);
+    }
   }, []);
 
   useEffect(() => {

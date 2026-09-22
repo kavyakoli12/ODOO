@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { MapPin, Navigation, Search, Loader2 } from 'lucide-react';
-import { Button, Input } from '@/components/ui';
+import { MapPin, Navigation, Search, Loader2, Sparkles } from 'lucide-react';
+import { Button, Input, useToast } from '@/components/ui';
 import { MAP_TILE_CONFIG } from '@/lib/mapConfig';
+import {
+  getFastCurrentPosition,
+  cachedReverseGeocode,
+  DEMO_LOCATION_PRESETS,
+  DEFAULT_COORDS,
+} from '@/lib/geolocation';
 import 'leaflet/dist/leaflet.css';
 
 // Fix Leaflet's default marker icon issue with bundlers
@@ -48,26 +54,19 @@ function MapFlyTo({ lat, lng }: { lat: number; lng: number }) {
 }
 
 export function LocationPicker({ latitude, longitude, address, onChange }: LocationPickerProps) {
+  const { showToast } = useToast();
   const [isLocating, setIsLocating] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [locationNotice, setLocationNotice] = useState<string | null>(null);
 
-  // Reverse geocode coordinates to street address
+  // Cached reverse geocode coordinates to street address
   const reverseGeocode = async (lat: number, lng: number) => {
     setIsGeocoding(true);
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`,
-        { headers: { 'Accept-Language': 'en' } }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const display = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        onChange(lat, lng, display);
-      } else {
-        onChange(lat, lng, address || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
-      }
-    } catch (e) {
+      const display = await cachedReverseGeocode(lat, lng);
+      onChange(lat, lng, display);
+    } catch {
       onChange(lat, lng, address || `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
     } finally {
       setIsGeocoding(false);
@@ -75,28 +74,34 @@ export function LocationPicker({ latitude, longitude, address, onChange }: Locat
   };
 
   const handleMapClick = (lat: number, lng: number) => {
+    setLocationNotice(null);
     reverseGeocode(lat, lng);
   };
 
-  const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser.');
-      return;
-    }
-
+  // Fast, non-blocking GPS detection with seamless fallback (never uses window.alert)
+  const handleUseCurrentLocation = async () => {
     setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setIsLocating(false);
-        const { latitude: lat, longitude: lng } = pos.coords;
-        reverseGeocode(lat, lng);
-      },
-      (err) => {
-        setIsLocating(false);
-        alert(`Location permission denied or unavailable: ${err.message}. You can still click on the map to set a location.`);
-      },
-      { timeout: 10000, enableHighAccuracy: true }
-    );
+    setLocationNotice(null);
+
+    try {
+      const result = await getFastCurrentPosition({ preferHighAccuracy: false, timeoutMs: 3500 });
+      setIsLocating(false);
+
+      reverseGeocode(result.coords.lat, result.coords.lng);
+
+      if (result.isFallback) {
+        const msg = result.message || 'Position resolved to approximate city area.';
+        setLocationNotice(msg);
+        showToast('info', `${msg} Click anywhere on the map to fine-tune.`, 'Location Positioned');
+      } else {
+        showToast('success', 'Current position acquired successfully.', 'GPS Locked');
+      }
+    } catch {
+      setIsLocating(false);
+      onChange(DEFAULT_COORDS.lat, DEFAULT_COORDS.lng, 'Ahmedabad, Gujarat, India');
+      setLocationNotice('Location signal unavailable. Map centered on Ahmedabad city hub.');
+      showToast('warning', 'Location signal unavailable. Center set to Ahmedabad.', 'Location Fallback');
+    }
   };
 
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -181,6 +186,47 @@ export function LocationPicker({ latitude, longitude, address, onChange }: Locat
           Use My GPS
         </Button>
       </div>
+
+      {/* 1-Click Presentation & Demo Presets */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+        <span className="text-[11px] text-slate-400 font-semibold shrink-0 flex items-center gap-1 mr-1">
+          <Sparkles className="w-3 h-3 text-cyan-400" /> Demo Presets:
+        </span>
+        {DEMO_LOCATION_PRESETS.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            onClick={() => {
+              setLocationNotice(null);
+              setSearchError(null);
+              onChange(preset.lat, preset.lng, preset.address);
+              showToast('info', `Pinned to ${preset.name}`, 'Preset Selected');
+            }}
+            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/50 text-[11px] text-slate-200 transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>📍</span>
+            <span>{preset.shortName}</span>
+            {preset.badge && (
+              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">
+                {preset.badge}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {locationNotice && (
+        <div className="p-2.5 rounded-lg bg-cyan-950/40 border border-cyan-500/40 text-[11px] text-cyan-200 flex items-center justify-between">
+          <span>ℹ️ {locationNotice}</span>
+          <button
+            type="button"
+            onClick={() => setLocationNotice(null)}
+            className="text-cyan-400 hover:text-white font-bold ml-2"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {searchError && (
         <div className="p-2 rounded-lg bg-rose-950/40 border border-rose-800/40 text-[11px] text-rose-300">

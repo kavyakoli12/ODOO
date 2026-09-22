@@ -1,4 +1,4 @@
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, lazy } from 'react';
 import { BrowserRouter, Routes, Route, useLocation, Navigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -7,30 +7,30 @@ import {
 } from '@/components/ui';
 import { AlertBanner } from '@/components/ui/AlertBanner';
 import { AppShell } from '@/components/layout';
-import { HomePage } from '@/pages/HomePage';
-import { NotFoundPage } from '@/pages/NotFoundPage';
 import { ErrorBoundary } from '@/pages/ErrorBoundary';
-import { LoginPage } from '@/pages/auth/LoginPage';
-import { RegisterPage } from '@/pages/auth/RegisterPage';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
-import { CitizenDashboard } from '@/pages/citizen/CitizenDashboard';
-import { ReportIncidentPage } from '@/pages/citizen/ReportIncidentPage';
-import { MyReportsPage } from '@/pages/citizen/MyReportsPage';
-import { ReportDetailPage } from '@/pages/citizen/ReportDetailPage';
-import { PublicMapPage } from '@/pages/public/PublicMapPage';
-import { SafetyAlertsPage } from '@/pages/public/SafetyAlertsPage';
-import { OfficerDashboard } from '@/pages/officer/OfficerDashboard';
-import { IncidentReviewPage } from '@/pages/officer/IncidentReviewPage';
-import { InvestigationsPage } from '@/pages/officer/InvestigationsPage';
-import { InvestigationDetailPage } from '@/pages/officer/InvestigationDetailPage';
-import { AnalyticsDashboard } from '@/pages/officer/AnalyticsDashboard';
-import { AlertManagementPage } from '@/pages/officer/AlertManagementPage';
-import { OdooIntegrationDashboard } from '@/pages/officer/OdooIntegrationDashboard';
-import { SafeCorridorsPage } from '@/pages/officer/SafeCorridorsPage';
 import { initSocket } from '@/lib/socket';
 
-
-import { AdminDashboard } from '@/pages/admin/AdminDashboard';
+// Route-level Code Splitting for Ultra-Fast Initial Load Time
+const HomePage = lazy(() => import('@/pages/HomePage').then((m) => ({ default: m.HomePage })));
+const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
+const LoginPage = lazy(() => import('@/pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })));
+const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })));
+const CitizenDashboard = lazy(() => import('@/pages/citizen/CitizenDashboard').then((m) => ({ default: m.CitizenDashboard })));
+const ReportIncidentPage = lazy(() => import('@/pages/citizen/ReportIncidentPage').then((m) => ({ default: m.ReportIncidentPage })));
+const MyReportsPage = lazy(() => import('@/pages/citizen/MyReportsPage').then((m) => ({ default: m.MyReportsPage })));
+const ReportDetailPage = lazy(() => import('@/pages/citizen/ReportDetailPage').then((m) => ({ default: m.ReportDetailPage })));
+const PublicMapPage = lazy(() => import('@/pages/public/PublicMapPage').then((m) => ({ default: m.PublicMapPage })));
+const SafetyAlertsPage = lazy(() => import('@/pages/public/SafetyAlertsPage').then((m) => ({ default: m.SafetyAlertsPage })));
+const OfficerDashboard = lazy(() => import('@/pages/officer/OfficerDashboard').then((m) => ({ default: m.OfficerDashboard })));
+const IncidentReviewPage = lazy(() => import('@/pages/officer/IncidentReviewPage').then((m) => ({ default: m.IncidentReviewPage })));
+const InvestigationsPage = lazy(() => import('@/pages/officer/InvestigationsPage').then((m) => ({ default: m.InvestigationsPage })));
+const InvestigationDetailPage = lazy(() => import('@/pages/officer/InvestigationDetailPage').then((m) => ({ default: m.InvestigationDetailPage })));
+const AnalyticsDashboard = lazy(() => import('@/pages/officer/AnalyticsDashboard').then((m) => ({ default: m.AnalyticsDashboard })));
+const AlertManagementPage = lazy(() => import('@/pages/officer/AlertManagementPage').then((m) => ({ default: m.AlertManagementPage })));
+const OdooIntegrationDashboard = lazy(() => import('@/pages/officer/OdooIntegrationDashboard').then((m) => ({ default: m.OdooIntegrationDashboard })));
+const SafeCorridorsPage = lazy(() => import('@/pages/officer/SafeCorridorsPage').then((m) => ({ default: m.SafeCorridorsPage })));
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard })));
 
 function IncidentRedirect() {
   const { id } = useParams<{ id: string }>();

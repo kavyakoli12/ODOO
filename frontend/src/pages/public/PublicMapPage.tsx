@@ -5,6 +5,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { api } from '@/lib/api';
 import { MAP_TILE_CONFIG } from '@/lib/mapConfig';
+import { getFastCurrentPosition } from '@/lib/geolocation';
 import { MapFilters } from '@/components/map/MapFilters';
 import { MarkerClusterGroup } from '@/components/map/MarkerClusterGroup';
 import { MapLegend } from '@/components/map/MapLegend';
@@ -255,31 +256,24 @@ export function PublicMapPage() {
     return matching.length > 0 ? matching : incidents;
   }, [incidents, filters.searchQuery]);
 
-  const handleLocateMe = () => {
-    if (!navigator.geolocation) {
-      showToast('warning', 'Geolocation is not supported by your browser.', 'Location Unavailable');
-      return;
-    }
-
+  const handleLocateMe = async () => {
     setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const coords: [number, number] = [pos.coords.latitude, pos.coords.longitude];
-        setUserLocation(coords);
-        setTargetView({ coords, zoom: 15 });
-        setIsLocating(false);
+    try {
+      const result = await getFastCurrentPosition({ preferHighAccuracy: false, timeoutMs: 3500 });
+      const coords: [number, number] = [result.coords.lat, result.coords.lng];
+      setUserLocation(coords);
+      setTargetView({ coords, zoom: 15 });
+      setIsLocating(false);
+
+      if (result.isFallback) {
+        showToast('info', result.message || 'Centered map on approximate area.', 'Location Positioned');
+      } else {
         showToast('info', 'Centered map on your current location.', 'Location Updated');
-      },
-      (error) => {
-        setIsLocating(false);
-        let msg = 'Unable to retrieve location.';
-        if (error.code === error.PERMISSION_DENIED) {
-          msg = 'Location permission was denied. You can navigate manually.';
-        }
-        showToast('warning', msg, 'Location Notice');
-      },
-      { timeout: 8000, enableHighAccuracy: true }
-    );
+      }
+    } catch {
+      setIsLocating(false);
+      showToast('warning', 'Location signal unavailable. You can pan and zoom the map manually.', 'Location Notice');
+    }
   };
 
   const [isSearchingLocation, setIsSearchingLocation] = useState(false);

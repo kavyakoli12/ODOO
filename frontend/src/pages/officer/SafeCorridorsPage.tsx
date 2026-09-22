@@ -71,8 +71,14 @@ function normalizeLatLng(coords: any): [number, number] | null {
   return [a, b];
 }
 
-// Custom Leaflet Icons for Escort Beacons
-const createBeaconIcon = (status: string) => {
+// Memoized Leaflet Icons for Escort Beacons
+const beaconIconCache = new Map<string, L.DivIcon>();
+
+const getBeaconIcon = (status: string) => {
+  if (beaconIconCache.has(status)) {
+    return beaconIconCache.get(status)!;
+  }
+
   let colorClass = 'bg-cyan-500 border-cyan-300 shadow-cyan-500/50';
   let pingClass = 'bg-cyan-400';
   let iconLabel = '🚶';
@@ -96,13 +102,16 @@ const createBeaconIcon = (status: string) => {
     </div>
   `;
 
-  return L.divIcon({
+  const icon = L.divIcon({
     html,
     className: 'custom-escort-beacon',
     iconSize: [36, 36],
     iconAnchor: [18, 18],
     popupAnchor: [0, -18],
   });
+
+  beaconIconCache.set(status, icon);
+  return icon;
 };
 
 function ChangeMapView({ center }: { center: [number, number] }) {
@@ -129,34 +138,36 @@ export function SafeCorridorsPage() {
   const [officerNote, setOfficerNote] = useState('');
   const [isDispatching, setIsDispatching] = useState(false);
 
-  // 1. Fetch initial active escorts and zones + 3-second reactive polling
+  // 1. Fetch initial active escorts and zones + optimized polling
   useEffect(() => {
     let isMounted = true;
 
-    const fetchData = async (isBackground = false) => {
+    // Load danger zones once on mount, then refresh every 60s
+    const fetchZones = async () => {
       try {
-        const [escortsRes, zonesRes] = await Promise.all([
-          api.get('/escorts/active'),
-          api.get('/escorts/danger-zones'),
-        ]);
-
+        const res = await api.get('/escorts/danger-zones');
         if (!isMounted) return;
-
-        if (escortsRes.data?.success && Array.isArray(escortsRes.data.data)) {
-          setEscorts(escortsRes.data.data);
-          if (!isBackground && escortsRes.data.data.length > 0) {
-            const first = escortsRes.data.data[0];
-            const firstPos = normalizeLatLng(first.currentCoordinates);
-            if (firstPos) setMapCenter(firstPos);
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          setDangerZones(res.data.data);
+          if (res.data.data.length > 0) {
+            const firstZonePos = normalizeLatLng(res.data.data[0].centerCoordinates);
+            if (firstZonePos) setMapCenter(firstZonePos);
           }
         }
+      } catch {}
+    };
 
-        if (zonesRes.data?.success && Array.isArray(zonesRes.data.data)) {
-          setDangerZones(zonesRes.data.data);
-          if (!isBackground && (!escortsRes.data?.data || escortsRes.data.data.length === 0) && zonesRes.data.data.length > 0) {
-            const first = zonesRes.data.data[0];
-            const firstZonePos = normalizeLatLng(first.centerCoordinates);
-            if (firstZonePos) setMapCenter(firstZonePos);
+    // Fast active escorts sync (every 4s)
+    const fetchEscorts = async (isBackground = false) => {
+      try {
+        const res = await api.get('/escorts/active');
+        if (!isMounted) return;
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          setEscorts(res.data.data);
+          if (!isBackground && res.data.data.length > 0) {
+            const first = res.data.data[0];
+            const firstPos = normalizeLatLng(first.currentCoordinates);
+            if (firstPos) setMapCenter(firstPos);
           }
         }
       } catch (err) {
@@ -166,16 +177,16 @@ export function SafeCorridorsPage() {
       }
     };
 
-    fetchData(false);
+    fetchZones();
+    fetchEscorts(false);
 
-    // 3-second polling fallback so active citizen escorts are 100% reliably displayed
-    const pollInterval = setInterval(() => {
-      fetchData(true);
-    }, 3000);
+    const escortInterval = setInterval(() => fetchEscorts(true), 4000);
+    const zonesInterval = setInterval(fetchZones, 60000);
 
     return () => {
       isMounted = false;
-      clearInterval(pollInterval);
+      clearInterval(escortInterval);
+      clearInterval(zonesInterval);
     };
   }, [showToast]);
 
@@ -561,7 +572,7 @@ export function SafeCorridorsPage() {
                       />
                     )}
 
-                    <Marker position={pos} icon={createBeaconIcon(escort.status)}>
+                    <Marker position={pos} icon={getBeaconIcon(escort.status)}>
                       <Popup className="custom-popup">
                         <div className="p-1.5 space-y-2 max-w-xs">
                           <div className="flex items-center justify-between gap-2">
