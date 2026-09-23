@@ -23,6 +23,10 @@ export interface DangerZone {
   riskLevel: string;
   incidentCount: number;
   recentCrimes: string[];
+  status?: string;
+  isResolved?: boolean;
+  activeDaysRemaining?: number;
+  incidentDate?: string;
 }
 
 export interface ActiveEscortState {
@@ -84,7 +88,7 @@ function playDistressChime(isUrgent = false) {
 }
 
 export function SafeCorridorBanner() {
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const { showToast } = useToast();
   const {
     activeEscort,
@@ -118,8 +122,9 @@ export function SafeCorridorBanner() {
   const lastStationaryAlertTimeRef = useRef<number>(0);
   const lastRestLocationTickRef = useRef<number>(0);
 
-  // 1. Fetch Danger Zones on mount and refresh periodically
+  // 1. Fetch Danger Zones on mount and refresh periodically (only if authenticated)
   useEffect(() => {
+    if (!isAuthenticated) return;
     const fetchZones = async () => {
       try {
         const res = await api.get('/escorts/danger-zones');
@@ -131,11 +136,11 @@ export function SafeCorridorBanner() {
     fetchZones();
     const interval = setInterval(fetchZones, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isAuthenticated]);
 
-  // 2. Real-Time Geolocation Watcher
+  // 2. Real-Time Geolocation Watcher (only if authenticated)
   useEffect(() => {
-    if (!('geolocation' in navigator)) return;
+    if (!isAuthenticated || !('geolocation' in navigator)) return;
 
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
@@ -439,6 +444,8 @@ export function SafeCorridorBanner() {
     showToast('info', 'Safe Passage Escort ended by citizen.', 'Escort Deactivated');
   };
 
+  if (!isAuthenticated || !user) return null;
+
   return (
     <>
       {/* 1. Zone Entry Slide-up Prompt (Automatic Boundary Detection) */}
@@ -453,10 +460,12 @@ export function SafeCorridorBanner() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-white uppercase tracking-wide">
-                      Red Zone Detected
+                      {detectedZonePrompt.isResolved ? 'Resolved Hazard Spot' : 'Red Zone Detected'}
                     </span>
                     <span className="text-[10px] px-2 py-0.2 rounded-full bg-red-500/30 text-red-300 font-semibold border border-red-500/40">
-                      HIGH CAUTION
+                      {detectedZonePrompt.isResolved
+                        ? `7-DAY WATCH (${detectedZonePrompt.activeDaysRemaining}d left)`
+                        : 'HIGH CAUTION'}
                     </span>
                   </div>
                   <h4 className="text-xs font-bold text-slate-200 mt-0.5 line-clamp-1">

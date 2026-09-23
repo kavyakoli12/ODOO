@@ -7,6 +7,16 @@ export interface User {
   role: UserRole;
   isActive: boolean;
   isEmailVerified: boolean;
+  phone?: string;
+  familyPhone?: string;
+  familyName?: string;
+  familyRelation?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  bloodGroup?: string;
+  medicalNotes?: string;
   badgeNumber?: string;
   department?: string;
   lastLogin?: string;
@@ -17,6 +27,10 @@ export interface User {
 export interface AuthResponse {
   success: boolean;
   message?: string;
-  user: User;
-  accessToken: string;
+  user?: User;
+  accessToken?: string;
+  requiresVerification?: boolean;
+  email?: string;
+  devOtp?: string;
+  previewUrl?: string;
 }

@@ -165,75 +165,64 @@ escortRouter.post('/:sessionId/dispatch', async (req: Request, res: Response) =>
 
 /**
  * GET /api/v1/escorts/danger-zones
- * Returns high-incident danger red zones computed from verified incidents.
+ * Returns high-incident danger red zones computed dynamically from real incidents.
+ * Per citizen safety policy:
+ * 1. No permanent static red zones are returned.
+ * 2. When an incident is reported, it generates an active red zone.
+ * 3. If an incident is resolved (or occurred), the danger spot remains active for strictly 7 days before expiring.
  */
 escortRouter.get('/danger-zones', async (_req: Request, res: Response) => {
   try {
-    // 1. Defined prominent zones in Delhi NCR with verified high-incident risk
-    const defaultZones = [
-      {
-        id: 'zone-cp-block-a',
-        name: 'Connaught Place - Inner Circle (Block A & B)',
-        centerCoordinates: [77.2195, 28.6315], // [lng, lat]
-        radiusMeters: 750,
-        riskLevel: 'critical',
-        incidentCount: 14,
-        recentCrimes: ['Armed Threat', 'Robbery', 'Snatching'],
-      },
-      {
-        id: 'zone-lajpat-central',
-        name: 'Lajpat Nagar Central Market Area',
-        centerCoordinates: [77.2435, 28.5705],
-        radiusMeters: 900,
-        riskLevel: 'high',
-        incidentCount: 11,
-        recentCrimes: ['Theft & Burglary', 'Pickpocketing', 'Vandalism'],
-      },
-      {
-        id: 'zone-nehru-place',
-        name: 'Nehru Place Outer Ring Transit Corridor',
-        centerCoordinates: [77.2515, 28.549],
-        radiusMeters: 800,
-        riskLevel: 'high',
-        incidentCount: 8,
-        recentCrimes: ['Vehicle Theft', 'Physical Assault'],
-      },
-      {
-        id: 'zone-rohini-sec3',
-        name: 'Rohini Sector 3 Metro Corridor',
-        centerCoordinates: [77.118, 28.699],
-        radiusMeters: 850,
-        riskLevel: 'moderate',
-        incidentCount: 6,
-        recentCrimes: ['Suspicious Activity', 'Poor Lighting'],
-      },
-    ];
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
 
-    // 2. Dynamically ingest all real reported incidents (handles both Mongo and memory storage)
+    // Dynamically ingest real reported incidents (handles both MongoDB and memory fallback)
     let dynamicIncidentZones: any[] = [];
     try {
-      const activeIncidents = await getMapIncidents({ limit: 60 });
-      dynamicIncidentZones = activeIncidents
-        .filter((inc) => inc.location?.coordinates && inc.location.coordinates.length === 2)
-        .map((inc) => ({
-          id: `incident-${inc.id}`,
-          name: `${inc.title} (${inc.approximateAddress || inc.categoryName || 'Hazard Area'})`,
-          centerCoordinates: inc.location.coordinates, // [lng, lat]
-          radiusMeters: (inc.severity || 2) >= 3 ? 1000 : 750,
-          riskLevel: (inc.severity || 2) >= 4 ? 'critical' : (inc.severity || 2) >= 3 ? 'high' : 'moderate',
-          incidentCount: 1,
-          recentCrimes: [inc.categoryName || 'Reported Hazard'],
-        }));
+      const allIncidents = await getMapIncidents({ limit: 100 });
+      dynamicIncidentZones = allIncidents
+        .filter((inc) => {
+          if (!inc.location?.coordinates || inc.location.coordinates.length !== 2) return false;
+          if (inc.status === 'rejected') return false;
+
+          const incidentTime = new Date(inc.incidentDate || inc.createdAt).getTime();
+          const ageMs = now - incidentTime;
+
+          // Incident spot is active strictly for 7 days
+          if (ageMs > SEVEN_DAYS_MS) {
+            return false;
+          }
+
+          return true;
+        })
+        .map((inc) => {
+          const incidentTime = new Date(inc.incidentDate || inc.createdAt).getTime();
+          const ageMs = now - incidentTime;
+          const daysRemaining = Math.max(1, Math.ceil((SEVEN_DAYS_MS - ageMs) / (24 * 60 * 60 * 1000)));
+
+          return {
+            id: `incident-${inc.id}`,
+            incidentId: inc.id,
+            name: `${inc.title} (${inc.approximateAddress || inc.categoryName || 'Hazard Spot'})`,
+            centerCoordinates: inc.location.coordinates, // [lng, lat]
+            radiusMeters: (inc.severity || 2) >= 3 ? 1000 : 750,
+            riskLevel: (inc.severity || 2) >= 4 ? 'critical' : (inc.severity || 2) >= 3 ? 'high' : 'moderate',
+            incidentCount: 1,
+            recentCrimes: [inc.categoryName || 'Reported Incident'],
+            status: inc.status,
+            isResolved: inc.status === 'resolved',
+            activeDaysRemaining: daysRemaining,
+            incidentDate: inc.incidentDate,
+          };
+        });
     } catch {
       // Fallback if error
     }
 
-    const allZones = [...dynamicIncidentZones, ...defaultZones];
-
     res.json({
       success: true,
-      count: allZones.length,
-      data: allZones,
+      count: dynamicIncidentZones.length,
+      data: dynamicIncidentZones,
     });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });

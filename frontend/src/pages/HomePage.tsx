@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ShieldAlert,
@@ -11,14 +10,7 @@ import {
   Clock,
   Sparkles,
   Users,
-  PhoneCall,
-  Copy,
-  Check,
-  Phone,
-  Flame,
-  HeartPulse,
   Shield,
-  UserCheck,
 } from 'lucide-react';
 import {
   Button,
@@ -33,75 +25,6 @@ export function HomePage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { isAuthenticated } = useAuthStore();
-  const [copiedNumber, setCopiedNumber] = useState<string | null>(null);
-
-  const emergencyNumbers = [
-    {
-      number: '112',
-      title: 'National Emergency Helpline',
-      subtitle: 'All-in-One Emergency: Police, Fire, Ambulance & Disaster',
-      category: 'Unified Hotline',
-      badgeColor: 'bg-rose-500/20 text-rose-400 border-rose-500/30',
-      icon: <PhoneCall className="w-5 h-5 text-rose-400" />,
-    },
-    {
-      number: '100',
-      title: 'Police Control Room',
-      subtitle: 'Immediate crime, distress, disturbance, or patrol assistance',
-      category: 'Law Enforcement',
-      badgeColor: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
-      icon: <Shield className="w-5 h-5 text-indigo-400" />,
-    },
-    {
-      number: '108',
-      title: 'Emergency Medical & Ambulance',
-      subtitle: 'Critical medical transport, severe injuries, life support',
-      category: 'Medical Service',
-      badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-      icon: <HeartPulse className="w-5 h-5 text-emerald-400" />,
-    },
-    {
-      number: '1091',
-      title: 'Women Helpline & Distress Safety',
-      subtitle: '24/7 dedicated support for women in harassment or crisis',
-      category: 'Women Protection',
-      badgeColor: 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-      icon: <UserCheck className="w-5 h-5 text-purple-400" />,
-    },
-    {
-      number: '101',
-      title: 'Fire & Rescue Service',
-      subtitle: 'Fire emergencies, building collapse, hazardous gas leaks',
-      category: 'Rescue & Fire',
-      badgeColor: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
-      icon: <Flame className="w-5 h-5 text-amber-400" />,
-    },
-    {
-      number: '1098',
-      title: 'Childline / Child Protection',
-      subtitle: 'Emergency care, protection, and rescue for children in distress',
-      category: 'Child Welfare',
-      badgeColor: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
-      icon: <Users className="w-5 h-5 text-sky-400" />,
-    },
-    {
-      number: '1930',
-      title: 'National Cyber Crime Reporting',
-      subtitle: 'Online financial fraud, identity theft, cyber harassment',
-      category: 'Cyber Defense',
-      badgeColor: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-      icon: <Lock className="w-5 h-5 text-cyan-400" />,
-    },
-  ];
-
-  const handleCopyNumber = (num: string, label: string) => {
-    navigator.clipboard.writeText(num);
-    setCopiedNumber(num);
-    showToast('success', `Copied emergency number ${num} (${label}) to clipboard.`, 'Number Copied');
-    setTimeout(() => {
-      setCopiedNumber(null);
-    }, 2500);
-  };
 
   return (
     <div className="space-y-12 py-4">
@@ -300,88 +223,6 @@ export function HomePage() {
               Verified incidents initiate rapid officer dispatch, active case investigations, and neighborhood resolution.
             </p>
           </div>
-        </div>
-      </section>
-
-      {/* 4. Comprehensive Emergency Helplines Directory (Laptop & Mobile Accessible) */}
-      <section className="space-y-5 p-6 sm:p-8 rounded-3xl bg-gradient-to-b from-slate-900 via-slate-900/90 to-slate-950 border border-rose-900/40 shadow-2xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-2 text-xs font-bold text-rose-400 uppercase tracking-wider">
-              <PhoneCall className="w-4 h-4 animate-bounce" />
-              Immediate Danger & Critical Emergency Contacts
-            </div>
-            <h3 className="text-xl sm:text-2xl font-black text-white">
-              Official Emergency Helplines
-            </h3>
-            <p className="text-xs text-slate-400 max-w-2xl">
-              If accessing via laptop or desktop without cellular calling, copy or note down these numbers directly. For immediate life-threatening danger, reach out to verified dispatch services immediately.
-            </p>
-          </div>
-
-          <div className="shrink-0 flex items-center gap-2">
-            <span className="px-3 py-1.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-              24/7 Toll-Free Dispatch
-            </span>
-          </div>
-        </div>
-
-        {/* Emergency Numbers Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {emergencyNumbers.map((item) => (
-            <div
-              key={item.number}
-              className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3 group"
-            >
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${item.badgeColor}`}>
-                    {item.category}
-                  </span>
-                  <div className="p-1.5 rounded-lg bg-slate-900 border border-slate-800 group-hover:scale-105 transition-transform">
-                    {item.icon}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-2xl font-black tracking-tight text-white font-mono flex items-center gap-2">
-                    <span>{item.number}</span>
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-200 mt-1">{item.title}</h4>
-                  <p className="text-[11px] text-slate-400 leading-relaxed mt-0.5">{item.subtitle}</p>
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-slate-800/80 flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleCopyNumber(item.number, item.title)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-xs font-medium text-slate-200 transition-colors"
-                >
-                  {copiedNumber === item.number ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-emerald-400">Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Copy Number</span>
-                    </>
-                  )}
-                </button>
-
-                <a
-                  href={`tel:${item.number}`}
-                  className="flex items-center justify-center p-1.5 px-3 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition-colors"
-                  title={`Dial ${item.number}`}
-                >
-                  <Phone className="w-3.5 h-3.5" />
-                </a>
-              </div>
-            </div>
-          ))}
         </div>
       </section>
     </div>

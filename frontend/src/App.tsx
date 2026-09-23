@@ -16,6 +16,8 @@ const HomePage = lazy(() => import('@/pages/HomePage').then((m) => ({ default: m
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage').then((m) => ({ default: m.LoginPage })));
 const RegisterPage = lazy(() => import('@/pages/auth/RegisterPage').then((m) => ({ default: m.RegisterPage })));
+const VerifyEmailPage = lazy(() => import('@/pages/auth/VerifyEmailPage').then((m) => ({ default: m.VerifyEmailPage })));
+const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage').then((m) => ({ default: m.ProfilePage })));
 const CitizenDashboard = lazy(() => import('@/pages/citizen/CitizenDashboard').then((m) => ({ default: m.CitizenDashboard })));
 const ReportIncidentPage = lazy(() => import('@/pages/citizen/ReportIncidentPage').then((m) => ({ default: m.ReportIncidentPage })));
 const MyReportsPage = lazy(() => import('@/pages/citizen/MyReportsPage').then((m) => ({ default: m.MyReportsPage })));
@@ -100,11 +102,22 @@ function AppContent() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/map" element={<PublicMapPage />} />
             <Route path="/safety" element={<PublicMapPage />} />
             <Route path="/safety-alerts" element={<SafetyAlertsPage />} />
             <Route path="/report" element={<ReportRedirect />} />
             <Route path="/incidents/:id" element={<IncidentRedirect />} />
+
+            {/* User Profile Route (All Roles) */}
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute allowedRoles={['citizen', 'officer', 'admin']}>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Citizen Protected Routes */}
             <Route

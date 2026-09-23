@@ -18,6 +18,8 @@ const envSchema = z.object({
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   GEMINI_API_KEY: z.string().optional(),
+  EMAIL_USER: z.string().optional().default('').transform((val) => val.trim()),
+  EMAIL_PASS: z.string().optional().default('').transform((val) => val.trim()),
 });
 
 const parsed = envSchema.safeParse(process.env);

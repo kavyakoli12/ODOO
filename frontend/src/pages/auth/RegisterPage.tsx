@@ -44,11 +44,22 @@ export function RegisterPage() {
         confirmPassword,
       });
 
-      if (res.data.success && res.data.user && res.data.accessToken) {
-        const { user, accessToken } = res.data;
-        setAuth(user, accessToken);
-        showToast('success', `Account created! Welcome to Trinetra, ${user.name}.`, 'Registration Success');
-        navigate('/citizen', { replace: true });
+      if (res.data.success) {
+        if (res.data.requiresVerification) {
+          showToast('success', res.data.message || 'Verification code sent to your email.', 'Check Your Email');
+          navigate(`/verify-email?email=${encodeURIComponent(email.trim())}`, {
+            state: { email: email.trim() },
+            replace: true,
+          });
+          return;
+        }
+
+        if (res.data.user && res.data.accessToken) {
+          const { user, accessToken } = res.data;
+          setAuth(user, accessToken);
+          showToast('success', `Account created! Welcome to Trinetra, ${user.name}.`, 'Registration Success');
+          navigate('/citizen', { replace: true });
+        }
       }
     } catch (err: any) {
       const msg = err.response?.data?.error || 'Registration failed. Please try again.';

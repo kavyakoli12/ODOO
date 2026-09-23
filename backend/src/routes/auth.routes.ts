@@ -1,10 +1,13 @@
 import { Router } from 'express';
 import {
   register,
+  verifyEmail,
+  resendVerification,
   login,
   refresh,
   logout,
   getMe,
+  updateProfile,
   createOfficer,
   getCitizensController,
   updateUserStatusController,
@@ -17,12 +20,15 @@ export const authRouter = Router();
 
 // Public Authentication
 authRouter.post('/register', registerLimiter, register);
+authRouter.post('/verify-email', verifyEmail);
+authRouter.post('/resend-verification', registerLimiter, resendVerification);
 authRouter.post('/login', loginLimiter, login);
 authRouter.post('/refresh', refresh);
 authRouter.post('/logout', logout);
 
 // Authenticated User Profile
 authRouter.get('/me', authenticate, getMe);
+authRouter.put('/profile', authenticate, updateProfile);
 
 // Admin-only User & Officer Management
 authRouter.post('/officers', authenticate, authorize('admin'), createOfficer);

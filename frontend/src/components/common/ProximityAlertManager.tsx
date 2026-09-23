@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { MapPin, X, ShieldAlert, ArrowRight } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useNotificationStore } from '@/store/notificationStore';
+import { useAuthStore } from '@/store/authStore';
 import { useToast } from '@/components/ui';
 
 interface ProximityIncident {
@@ -55,6 +56,7 @@ export function ProximityAlertManager() {
   const navigate = useNavigate();
   const location = useLocation();
   const { showToast } = useToast();
+  const { isAuthenticated } = useAuthStore();
   const addNotification = useNotificationStore((s) => s.addNotification);
 
   const [activeAlert, setActiveAlert] = useState<ProximityIncident | null>(null);
@@ -154,9 +156,9 @@ export function ProximityAlertManager() {
     [addNotification, showToast]
   );
 
-  // Watch position in real-time
+  // Watch position in real-time (only if authenticated)
   useEffect(() => {
-    if (!('geolocation' in navigator)) return;
+    if (!isAuthenticated || !('geolocation' in navigator)) return;
 
     let watchId: number | null = null;
 
@@ -215,7 +217,7 @@ export function ProximityAlertManager() {
     }
   }, [location.pathname, activeAlert]);
 
-  if (!activeAlert) return null;
+  if (!isAuthenticated || !activeAlert) return null;
 
   return (
     <div className="fixed top-20 right-4 z-50 max-w-md w-[calc(100vw-2rem)] animate-in slide-in-from-top-4 duration-300">

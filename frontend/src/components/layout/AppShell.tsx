@@ -6,6 +6,8 @@ import { Footer } from './Footer';
 import { ProximityAlertManager } from '@/components/common/ProximityAlertManager';
 import { SafeCorridorBanner } from '@/components/common/SafeCorridorBanner';
 
+import { useAuthStore } from '@/store/authStore';
+
 export interface AppShellProps {
   children: React.ReactNode;
   showSidebar?: boolean;
@@ -14,14 +16,15 @@ export interface AppShellProps {
 
 export function AppShell({ children, showSidebar = false, role = 'citizen' }: AppShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const { isAuthenticated } = useAuthStore();
 
   return (
     <div className="min-h-screen flex flex-col bg-surface-dark text-slate-100 pb-16 lg:pb-0">
-      {/* Real-Time Proximity Geofencing Alerts (without page refresh) */}
-      <ProximityAlertManager />
+      {/* Real-Time Proximity Geofencing Alerts (Only shown when logged in) */}
+      {isAuthenticated && <ProximityAlertManager />}
 
-      {/* Trinetra Safe Passage (Virtual Escort & Dead-Man's Timer in Red Zones) */}
-      <SafeCorridorBanner />
+      {/* Trinetra Safe Passage Virtual Escort (Only active when logged in) */}
+      {isAuthenticated && <SafeCorridorBanner />}
 
       <Navbar onToggleSidebar={showSidebar ? () => setIsSidebarOpen(!isSidebarOpen) : undefined} />
 

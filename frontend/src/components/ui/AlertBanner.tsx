@@ -3,6 +3,7 @@ import { AlertTriangle, Info, X, ChevronRight, Shield } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
 import { initSocket } from '@/lib/socket';
+import { useAuthStore } from '@/store/authStore';
 
 interface PublicAlert {
   id: string;
@@ -42,12 +43,15 @@ const SEVERITY_CONFIG = {
 };
 
 export function AlertBanner() {
+  const { isAuthenticated } = useAuthStore();
   const [alerts, setAlerts] = useState<PublicAlert[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     // Fetch active alerts
     api
       .get('/alerts/active')
@@ -79,13 +83,13 @@ export function AlertBanner() {
       socket.off('alert:updated');
       socket.off('alert:expired');
     };
-  }, []);
+  }, [isAuthenticated]);
 
   const visibleAlerts = alerts.filter(
     (a) => !dismissed.has(a.id) && new Date(a.expiresAt) > new Date()
   );
 
-  if (visibleAlerts.length === 0) return null;
+  if (!isAuthenticated || visibleAlerts.length === 0) return null;
 
   // Show highest severity first
   const sorted = [...visibleAlerts].sort((a, b) => {

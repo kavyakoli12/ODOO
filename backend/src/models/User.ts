@@ -7,6 +7,17 @@ export interface IUser extends Document {
   passwordHash: string;
   name: string;
   phone?: string;
+  familyPhone?: string;
+  familyName?: string;
+  familyRelation?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  bloodGroup?: string;
+  medicalNotes?: string;
+  emailVerificationCode?: string;
+  emailVerificationExpires?: Date;
   role: UserRole;
   isActive: boolean;
   isEmailVerified: boolean;
@@ -43,6 +54,50 @@ const UserSchema = new Schema<IUser>(
     phone: {
       type: String,
       trim: true,
+    },
+    familyPhone: {
+      type: String,
+      trim: true,
+    },
+    familyName: {
+      type: String,
+      trim: true,
+    },
+    familyRelation: {
+      type: String,
+      trim: true,
+    },
+    address: {
+      type: String,
+      trim: true,
+    },
+    city: {
+      type: String,
+      trim: true,
+    },
+    state: {
+      type: String,
+      trim: true,
+    },
+    pincode: {
+      type: String,
+      trim: true,
+    },
+    bloodGroup: {
+      type: String,
+      trim: true,
+    },
+    medicalNotes: {
+      type: String,
+      trim: true,
+    },
+    emailVerificationCode: {
+      type: String,
+      select: false,
+    },
+    emailVerificationExpires: {
+      type: Date,
+      select: false,
     },
     role: {
       type: String,

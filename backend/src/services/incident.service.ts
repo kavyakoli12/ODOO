@@ -871,16 +871,30 @@ export async function getProximityIncidents(
 ): Promise<ProximityIncidentResult[]> {
   const mapIncidents = await getMapIncidents({ lat, lng, radiusKm: Math.max(0.1, radiusKm) });
 
-  const enriched: ProximityIncidentResult[] = mapIncidents.map((inc) => {
-    const incLng = inc.location.coordinates[0];
-    const incLat = inc.location.coordinates[1];
-    const distKm = haversineDistanceKm(lat, lng, incLat, incLng);
-    return {
-      ...inc,
-      distanceKm: Math.round(distKm * 100) / 100,
-      distanceMeters: Math.round(distKm * 1000),
-    };
-  });
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+
+  const enriched: ProximityIncidentResult[] = mapIncidents
+    .filter((inc) => {
+      if (inc.status === 'rejected') return false;
+      const incTime = new Date(inc.incidentDate).getTime();
+      const ageMs = now - incTime;
+      // Resolved danger spots are active for strictly 7 days
+      if (inc.status === 'resolved' && ageMs > SEVEN_DAYS_MS) {
+        return false;
+      }
+      return true;
+    })
+    .map((inc) => {
+      const incLng = inc.location.coordinates[0];
+      const incLat = inc.location.coordinates[1];
+      const distKm = haversineDistanceKm(lat, lng, incLat, incLng);
+      return {
+        ...inc,
+        distanceKm: Math.round(distKm * 100) / 100,
+        distanceMeters: Math.round(distKm * 1000),
+      };
+    });
 
   return enriched
     .filter((inc) => inc.distanceKm <= radiusKm)

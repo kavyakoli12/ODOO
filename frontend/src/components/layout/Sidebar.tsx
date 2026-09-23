@@ -14,6 +14,7 @@ import {
   Users,
   LogOut,
   Radio,
+  User as UserIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button, useToast } from '@/components/ui';
@@ -87,6 +88,7 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
     { label: 'My Reports', path: '/citizen/reports', icon: <Shield className="w-4 h-4" /> },
     { label: 'Community Map', path: '/map', icon: <Map className="w-4 h-4" /> },
     { label: 'Safety Alerts', path: '/safety-alerts', icon: <Bell className="w-4 h-4" /> },
+    { label: 'My Profile & Emergency Info', path: '/profile', icon: <UserIcon className="w-4 h-4 text-brand-400" /> },
   ];
 
   const officerLinks = [
@@ -96,6 +98,7 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
     { label: 'Active Investigations', path: '/officer/investigations', icon: <Shield className="w-4 h-4" /> },
     { label: 'Crime Trend Analytics', path: '/officer/analytics', icon: <BarChart2 className="w-4 h-4" /> },
     { label: 'Emergency Alerts', path: '/officer/alerts', icon: <Bell className="w-4 h-4" /> },
+    { label: 'My Officer Profile', path: '/profile', icon: <UserIcon className="w-4 h-4 text-brand-400" /> },
   ];
 
   const adminLinks = [
@@ -103,6 +106,7 @@ export function Sidebar({ isOpen, onClose, role }: SidebarProps) {
     { label: 'Officer Management', path: '/admin/users', icon: <Users className="w-4 h-4" /> },
     { label: 'Citizen Management', path: '/admin/citizens', icon: <Shield className="w-4 h-4" /> },
     { label: 'Incident Categories', path: '/admin/categories', icon: <Inbox className="w-4 h-4" /> },
+    { label: 'My Admin Profile', path: '/profile', icon: <UserIcon className="w-4 h-4 text-brand-400" /> },
   ];
 
   const links =

@@ -13,6 +13,16 @@ export interface SafeUser {
   role: UserRole;
   isActive: boolean;
   isEmailVerified: boolean;
+  phone?: string;
+  familyPhone?: string;
+  familyName?: string;
+  familyRelation?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  bloodGroup?: string;
+  medicalNotes?: string;
   badgeNumber?: string;
   department?: string;
   lastLogin?: Date;
@@ -27,6 +37,10 @@ export interface CreateUserData {
   role?: UserRole;
   badgeNumber?: string;
   department?: string;
+  phone?: string;
+  isEmailVerified?: boolean;
+  emailVerificationCode?: string;
+  emailVerificationExpires?: Date;
 }
 
 // Memory fallback store when MongoDB is not connected
@@ -44,6 +58,16 @@ export function toSafeUser(user: any): SafeUser {
     role: user.role,
     isActive: user.isActive ?? true,
     isEmailVerified: user.isEmailVerified ?? false,
+    phone: user.phone || '',
+    familyPhone: user.familyPhone || '',
+    familyName: user.familyName || '',
+    familyRelation: user.familyRelation || '',
+    address: user.address || '',
+    city: user.city || '',
+    state: user.state || '',
+    pincode: user.pincode || '',
+    bloodGroup: user.bloodGroup || '',
+    medicalNotes: user.medicalNotes || '',
     badgeNumber: user.badgeNumber,
     department: user.department,
     lastLogin: user.lastLogin,
@@ -99,6 +123,8 @@ export async function createUser(data: CreateUserData): Promise<SafeUser> {
   const passwordHash = await hashPassword(data.password);
   const now = new Date();
 
+  const isEmailVerified = data.isEmailVerified !== undefined ? data.isEmailVerified : true;
+
   if (isMongoConnected()) {
     const newUser = await User.create({
       name: data.name.trim(),
@@ -107,8 +133,11 @@ export async function createUser(data: CreateUserData): Promise<SafeUser> {
       role: data.role || 'citizen',
       badgeNumber: data.badgeNumber,
       department: data.department,
+      phone: data.phone,
       isActive: true,
-      isEmailVerified: true,
+      isEmailVerified,
+      emailVerificationCode: data.emailVerificationCode,
+      emailVerificationExpires: data.emailVerificationExpires,
       loginAttempts: 0,
     });
     return toSafeUser(newUser);
@@ -125,14 +154,39 @@ export async function createUser(data: CreateUserData): Promise<SafeUser> {
     role: data.role || 'citizen',
     badgeNumber: data.badgeNumber,
     department: data.department,
+    phone: data.phone,
     isActive: true,
-    isEmailVerified: true,
+    isEmailVerified,
+    emailVerificationCode: data.emailVerificationCode,
+    emailVerificationExpires: data.emailVerificationExpires,
     loginAttempts: 0,
     createdAt: now,
     updatedAt: now,
   };
   memoryUsers.set(id, memUser);
   return toSafeUser(memUser);
+}
+
+export async function updateUserProfile(userId: string, data: Partial<any>): Promise<SafeUser | null> {
+  if (isMongoConnected()) {
+    const updated = await User.findByIdAndUpdate(
+      userId,
+      { $set: data },
+      { new: true, runValidators: true }
+    ).exec();
+    return updated ? toSafeUser(updated) : null;
+  }
+
+  // Memory fallback
+  for (const [key, user] of memoryUsers.entries()) {
+    const id = user._id ? user._id.toString() : user.id;
+    if (id === userId) {
+      Object.assign(user, data, { updatedAt: new Date() });
+      memoryUsers.set(key, user);
+      return toSafeUser(user);
+    }
+  }
+  return null;
 }
 
 export async function handleFailedLogin(userId: string): Promise<{ isLocked: boolean; lockUntil?: Date }> {

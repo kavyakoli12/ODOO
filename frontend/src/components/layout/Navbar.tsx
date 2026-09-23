@@ -93,18 +93,24 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
             {isAuthenticated && user ? (
               <div className="flex items-center gap-3">
                 <NotificationBell />
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800">
-                  <div className="w-6 h-6 rounded-full bg-brand-600/30 border border-brand-500/40 text-brand-300 text-xs font-bold flex items-center justify-center">
+                <Link
+                  to="/profile"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-brand-500/50 hover:bg-slate-800/80 transition-all cursor-pointer group"
+                  title="Manage Profile & Emergency Contacts"
+                >
+                  <div className="w-6 h-6 rounded-full bg-brand-600/30 border border-brand-500/40 text-brand-300 text-xs font-bold flex items-center justify-center group-hover:scale-105 transition-transform">
                     {user.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="text-left">
-                    <div className="text-xs font-semibold text-white leading-none">{user.name}</div>
+                    <div className="text-xs font-semibold text-white leading-none group-hover:text-brand-300 transition-colors">
+                      {user.name}
+                    </div>
                     <div className="text-[10px] text-slate-400 capitalize mt-0.5">{user.role}</div>
                   </div>
                   <Badge status={user.role === 'officer' ? 'assigned' : 'verified'} className="text-[10px] ml-1">
                     {user.role.toUpperCase()}
                   </Badge>
-                </div>
+                </Link>
 
                 {!isCitizen && (
                   <Button
@@ -164,9 +170,17 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
           <div className="pt-2 border-t border-slate-800">
             {isAuthenticated && user ? (
               <div className="space-y-2">
-                <div className="text-xs text-slate-300 px-3">
-                  Signed in as <strong>{user.name}</strong> ({user.role})
+                <div className="text-xs text-slate-300 px-3 flex items-center justify-between">
+                  <span>Signed in as <strong>{user.name}</strong></span>
+                  <span className="text-[10px] uppercase text-brand-400 font-semibold">{user.role}</span>
                 </div>
+                <Link
+                  to="/profile"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 w-full py-2 rounded-lg bg-slate-900 border border-slate-800 text-xs font-semibold text-slate-200 hover:text-white hover:bg-slate-800"
+                >
+                  My Profile & Emergency Contacts
+                </Link>
                 <Button size="sm" variant="danger" className="w-full" onClick={handleLogout}>
                   Logout
                 </Button>
