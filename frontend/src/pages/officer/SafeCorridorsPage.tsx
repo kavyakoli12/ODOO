@@ -410,13 +410,13 @@ export function SafeCorridorsPage() {
         </div>
 
         {/* Quick Triage Counters */}
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
           <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
             <div className="text-[10px] text-slate-400 uppercase font-semibold">Monitoring</div>
             <div className="text-base font-bold text-cyan-400">{monitoringCount}</div>
           </div>
           <div className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-center">
-            <div className="text-[10px] text-slate-400 uppercase font-semibold">Stoppage Warnings</div>
+            <div className="text-[10px] text-slate-400 uppercase font-semibold">Stoppage</div>
             <div className="text-base font-bold text-amber-400">{stoppageCount}</div>
           </div>
           <div
@@ -426,7 +426,7 @@ export function SafeCorridorsPage() {
                 : 'bg-slate-900 border-slate-800 text-slate-400'
             }`}
           >
-            <div className="text-[10px] uppercase font-semibold">Distress Alarms</div>
+            <div className="text-[10px] uppercase font-semibold">Distress</div>
             <div className="text-base font-bold text-red-400">{distressCount}</div>
           </div>
         </div>
@@ -435,7 +435,7 @@ export function SafeCorridorsPage() {
       {/* Main Tactical Grid: Map (2/3) + Escort Queue (1/3) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Tactical Leaflet Map */}
-        <div className="lg:col-span-2 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-950 flex flex-col h-[640px] relative">
+        <div className="lg:col-span-2 rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-950 flex flex-col h-[420px] sm:h-[500px] lg:h-[640px] relative">
           <div className="px-4 py-2.5 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0 z-10">
             <div className="flex items-center gap-2">
               <Radio className="w-4 h-4 text-cyan-400 animate-pulse" />

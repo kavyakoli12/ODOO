@@ -467,7 +467,7 @@ export function ReportIncidentPage() {
               <label className="block text-xs font-medium text-slate-300 mb-1.5">
                 Severity Assessment
               </label>
-              <div className="grid grid-cols-5 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 {[
                   { level: 1, label: 'Minor', desc: 'No injury / low value' },
                   { level: 2, label: 'Moderate', desc: 'Theft / vandalism' },
@@ -480,6 +480,8 @@ export function ReportIncidentPage() {
                     type="button"
                     onClick={() => setSeverity(s.level)}
                     className={`p-2 rounded-lg border text-center transition-all ${
+                      s.level === 5 ? 'col-span-2 sm:col-span-1' : ''
+                    } ${
                       severity === s.level
                         ? 'bg-brand-600/30 border-brand-500 text-white shadow-lg'
                         : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
@@ -599,9 +601,9 @@ export function ReportIncidentPage() {
           </CardContent>
 
           <div ref={submitButtonRef}>
-            <CardFooter className="flex items-center justify-end gap-3">
-              <Link to="/citizen">
-                <Button type="button" variant="outline" size="md">
+            <CardFooter className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3">
+              <Link to="/citizen" className="w-full sm:w-auto">
+                <Button type="button" variant="outline" size="md" className="w-full sm:w-auto">
                   Cancel
                 </Button>
               </Link>
@@ -611,7 +613,7 @@ export function ReportIncidentPage() {
                 size="md"
                 isLoading={isSubmitting}
                 rightIcon={<ArrowRight className="w-4 h-4" />}
-                className="bg-gradient-to-r from-red-600 to-brand-600 hover:from-red-500 hover:to-brand-500 text-white font-bold shadow-lg shadow-red-600/30"
+                className="w-full sm:w-auto bg-gradient-to-r from-red-600 to-brand-600 hover:from-red-500 hover:to-brand-500 text-white font-bold shadow-lg shadow-red-600/30"
               >
                 Submit Report
               </Button>
@@ -620,9 +622,9 @@ export function ReportIncidentPage() {
         </Card>
       </form>
 
-      {/* Sticky Quick-Submit Floating Bar — Always on-screen after AI auto-fill */}
+      {/* Sticky Quick-Submit Floating Bar — Above bottom nav on mobile */}
       {aiVerificationData && !isSubmitting && (
-        <div className="sticky bottom-4 z-40 p-3 sm:p-4 rounded-2xl bg-slate-900/95 border border-emerald-500/60 shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom duration-300">
+        <div className="sticky bottom-20 sm:bottom-4 z-40 p-3 sm:p-4 rounded-2xl bg-slate-900/95 border border-emerald-500/60 shadow-2xl backdrop-blur-md flex items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom duration-300">
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
             <div className="truncate">

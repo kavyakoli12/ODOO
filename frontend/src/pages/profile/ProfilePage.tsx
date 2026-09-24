@@ -451,7 +451,7 @@ export function ProfilePage() {
             size="lg"
             isLoading={isSaving}
             leftIcon={<Save className="w-4 h-4" />}
-            className="px-6"
+            className="w-full sm:w-auto px-6"
           >
             Save Profile Details
           </Button>

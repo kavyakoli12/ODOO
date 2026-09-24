@@ -203,7 +203,7 @@ export function VerifyEmailPage() {
                 <label className="block text-xs font-medium text-slate-300 mb-3 text-center">
                   Enter 6-Digit OTP Code
                 </label>
-                <div className="flex items-center justify-center gap-2 sm:gap-3">
+                <div className="flex items-center justify-center gap-1.5 sm:gap-3">
                   {otpDigits.map((digit, index) => (
                     <input
                       key={index}
@@ -215,7 +215,7 @@ export function VerifyEmailPage() {
                       value={digit}
                       onChange={(e) => handleDigitChange(index, e.target.value)}
                       onKeyDown={(e) => handleKeyDown(index, e)}
-                      className="w-11 h-13 sm:w-12 sm:h-14 text-center text-xl font-bold font-mono rounded-xl bg-slate-950 border-2 border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-white transition-all shadow-inner outline-none"
+                      className="w-10 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-bold font-mono rounded-xl bg-slate-950 border-2 border-slate-700 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 text-white transition-all shadow-inner outline-none"
                     />
                   ))}
                 </div>

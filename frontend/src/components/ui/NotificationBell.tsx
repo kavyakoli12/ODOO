@@ -97,7 +97,7 @@ export function NotificationBell() {
       {/* Dropdown Panel */}
       {open && (
         <div
-          className="absolute right-0 top-full mt-2 w-96 max-h-[480px] rounded-2xl border border-slate-700/60 bg-slate-900/95 backdrop-blur-xl shadow-2xl z-50 flex flex-col overflow-hidden"
+          className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-96 max-w-sm max-h-[480px] rounded-2xl border border-slate-700/60 bg-slate-900/95 backdrop-blur-xl shadow-2xl z-50 flex flex-col overflow-hidden"
           style={{ animation: 'notif-slide-in 0.18s ease-out' }}
         >
           {/* Header */}

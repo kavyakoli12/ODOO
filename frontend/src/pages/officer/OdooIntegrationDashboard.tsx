@@ -185,7 +185,7 @@ export function OdooIntegrationDashboard() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full min-w-[550px] text-left text-xs">
             <thead>
               <tr className="border-b border-slate-700/80 text-slate-400 uppercase tracking-wider text-[10px]">
                 <th className="pb-3 font-semibold">Incident ID</th>

@@ -405,7 +405,7 @@ export function AnalyticsDashboard() {
       </div>
 
       {/* Interactive Map Analytics & Heatmap Section */}
-      <div className="p-6 rounded-2xl border border-slate-700/50 bg-slate-800/60 backdrop-blur space-y-4">
+      <div className="p-4 sm:p-6 rounded-2xl border border-slate-700/50 bg-slate-800/60 backdrop-blur space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-700/60 pb-3">
           <div>
             <h2 className="text-base font-semibold text-white flex items-center gap-2">
@@ -418,10 +418,10 @@ export function AnalyticsDashboard() {
           </div>
 
           {/* Map Layer Selector */}
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900 border border-slate-700 text-xs">
+          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-slate-900 border border-slate-700 text-xs overflow-x-auto max-w-full scrollbar-none flex-nowrap shrink-0">
             <button
               onClick={() => setMapLayerFilter('all')}
-              className={`px-3 py-1 rounded-lg transition-colors font-medium ${
+              className={`px-3 py-1 rounded-lg transition-colors font-medium whitespace-nowrap shrink-0 ${
                 mapLayerFilter === 'all'
                   ? 'bg-brand-600 text-white shadow'
                   : 'text-slate-400 hover:text-white'
@@ -431,7 +431,7 @@ export function AnalyticsDashboard() {
             </button>
             <button
               onClick={() => setMapLayerFilter('citizen')}
-              className={`px-3 py-1 rounded-lg transition-colors font-medium flex items-center gap-1.5 ${
+              className={`px-3 py-1 rounded-lg transition-colors font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                 mapLayerFilter === 'citizen'
                   ? 'bg-blue-600 text-white shadow'
                   : 'text-slate-400 hover:text-white'
@@ -442,7 +442,7 @@ export function AnalyticsDashboard() {
             </button>
             <button
               onClick={() => setMapLayerFilter('verified')}
-              className={`px-3 py-1 rounded-lg transition-colors font-medium flex items-center gap-1.5 ${
+              className={`px-3 py-1 rounded-lg transition-colors font-medium flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                 mapLayerFilter === 'verified'
                   ? 'bg-emerald-600 text-white shadow'
                   : 'text-slate-400 hover:text-white'

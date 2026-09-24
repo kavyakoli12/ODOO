@@ -88,7 +88,7 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
             })}
           </nav>
 
-          {/* Action CTAs / User Auth Info */}
+          {/* Action CTAs / User Auth Info (Desktop / Tablet >= 640px) */}
           <div className="hidden sm:flex items-center gap-3">
             {isAuthenticated && user ? (
               <div className="flex items-center gap-3">
@@ -139,17 +139,45 @@ export function Navbar({ onToggleSidebar }: { onToggleSidebar?: () => void }) {
             )}
           </div>
 
-          {/* Mobile Menu Button (for guest/officer screens where sidebar is not the sole nav) */}
-          {(!isCitizen || !onToggleSidebar) && (
-            <div className="flex md:hidden">
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
-              >
-                {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
-            </div>
-          )}
+          {/* Mobile Right Controls: [Notifications / Profile / Menu] */}
+          <div className="flex sm:hidden items-center gap-1.5">
+            {isAuthenticated && user ? (
+              <>
+                <NotificationBell />
+                <Link
+                  to="/profile"
+                  className="w-8 h-8 rounded-full bg-brand-600/30 border border-brand-500/50 text-brand-300 text-xs font-bold flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
+                  title="My Profile"
+                >
+                  {user.name.charAt(0).toUpperCase()}
+                </Link>
+                {(!isCitizen || !onToggleSidebar) && (
+                  <button
+                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                    aria-label="Toggle mobile menu"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                  >
+                    {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                  </button>
+                )}
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button size="sm" variant="ghost" className="text-xs px-2.5 py-1">
+                    Sign In
+                  </Button>
+                </Link>
+                <button
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  aria-label="Toggle navigation"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                >
+                  {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

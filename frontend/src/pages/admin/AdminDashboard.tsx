@@ -612,7 +612,7 @@ export function AdminDashboard() {
 
           <Card className="border-slate-800 bg-slate-900/70 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full min-w-[640px] text-left text-xs">
                 <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
                   <tr>
                     <th className="px-4 py-3">Officer Name</th>
@@ -727,7 +727,7 @@ export function AdminDashboard() {
 
           <Card className="border-slate-800 bg-slate-900/70 overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full min-w-[640px] text-left text-xs">
                 <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
                   <tr>
                     <th className="px-4 py-3">Citizen Name</th>
