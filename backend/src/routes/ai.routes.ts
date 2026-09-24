@@ -6,9 +6,25 @@ import {
   suggestPriority,
   queryNaturalLanguageAnalytics,
   analyzeCrimeImage,
+  getAssistantResponse,
 } from '../services/ai.service.js';
 
 export const aiRouter = Router();
+
+// POST /api/v1/ai/assistant — interactive platform guide & intent redirection
+aiRouter.post('/assistant', async (req, res) => {
+  try {
+    const { message = '', history = [], userRole = 'guest' } = req.body;
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ success: false, error: 'A valid message string is required.' });
+    }
+
+    const response = await getAssistantResponse(message, history, userRole);
+    res.json({ success: true, data: response });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 // POST /api/v1/ai/analyze-crime & /api/v1/ai/analyze-image — camera scene scanning & verification
 const handleAnalyzeImage = async (req: any, res: any) => {

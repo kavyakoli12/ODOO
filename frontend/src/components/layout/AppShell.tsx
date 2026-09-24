@@ -5,6 +5,7 @@ import { MobileBottomNav } from './MobileBottomNav';
 import { Footer } from './Footer';
 import { ProximityAlertManager } from '@/components/common/ProximityAlertManager';
 import { SafeCorridorBanner } from '@/components/common/SafeCorridorBanner';
+import { FloatingChatbot } from '@/components/common/FloatingChatbot';
 
 import { useAuthStore } from '@/store/authStore';
 
@@ -49,6 +50,9 @@ export function AppShell({ children, showSidebar = false, role = 'citizen' }: Ap
 
       {/* Mobile Bottom Navigation */}
       <MobileBottomNav />
+
+      {/* Floating 24/7 Trinetra AI Guide & Smart Redirection Assistant */}
+      <FloatingChatbot />
     </div>
   );
 }

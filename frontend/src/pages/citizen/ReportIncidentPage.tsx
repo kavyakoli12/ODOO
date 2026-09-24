@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { api } from '@/lib/api';
 import {
   Shield,
@@ -37,14 +37,24 @@ import { getFastCurrentPosition, cachedReverseGeocode } from '@/lib/geolocation'
 
 export function ReportIncidentPage() {
   const { showToast } = useToast();
+  const [searchParams] = useSearchParams();
   const submitButtonRef = useRef<HTMLDivElement>(null);
 
   const [categories, setCategories] = useState<IncidentCategory[]>([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
 
-  // Form State
+  // Form State — auto-prefill category from URL query param if supplied (e.g. ?category=theft)
+  const initialCategoryParam = searchParams.get('category') || 'theft';
   const [title, setTitle] = useState('');
-  const [categorySlug, setCategorySlug] = useState('theft');
+  const [categorySlug, setCategorySlug] = useState(initialCategoryParam);
+
+  // Sync category if URL param changes dynamically
+  useEffect(() => {
+    const cat = searchParams.get('category');
+    if (cat) {
+      setCategorySlug(cat);
+    }
+  }, [searchParams]);
   const [description, setDescription] = useState('');
   const [severity, setSeverity] = useState(2);
   const [incidentDate, setIncidentDate] = useState(toLocalDateTimeString());

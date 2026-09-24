@@ -549,3 +549,449 @@ Respond ONLY with a valid JSON object matching this schema:
   };
 }
 
+export interface AssistantAction {
+  type: 'redirect' | 'helpline';
+  label: string;
+  path: string;
+  category?: string;
+  icon?: string;
+}
+
+export interface AssistantResponse {
+  reply: string;
+  action?: AssistantAction;
+  quickReplies?: string[];
+}
+
+/**
+ * AI Citizen & Platform Guide Assistant
+ * Answers user questions about Trinetra, safety, reporting, and provides instant one-click redirection.
+ */
+export async function getAssistantResponse(
+  message: string,
+  history: Array<{ role: 'user' | 'assistant'; content: string }> = [],
+  userRole: string = 'guest'
+): Promise<AssistantResponse> {
+  const query = message.trim();
+  const lower = query.toLowerCase();
+
+  // 1. Primary: Gemini for natural conversational response (using dedicated CHATBOT_API_KEY if present)
+  const apiKey = process.env.CHATBOT_API_KEY || process.env.GEMINI_API_KEY;
+  if (apiKey && apiKey.length > 10) {
+    try {
+      const systemInstruction = `You are "Trinetra AI Guide", the official virtual safety assistant and navigator for Trinetra Citizen Safety & Rapid Response Network.
+Your goal is to warmly, calmly, and clearly help citizens navigate the website, understand public safety features, and provide direct one-click redirections to the exact pages they need.
+
+TRINETRA PLATFORM CONTEXT & ROUTES:
+1. Incident Reporting:
+   - Route: "/citizen/report"
+   - Category query param: "/citizen/report?category=<slug>"
+   - Category slugs:
+     * "theft" (Theft, Burglary, Stolen items, Bag snatching, Pickpocketing)
+     * "robbery" (Robbery, Armed confrontation, Forced mugging)
+     * "assault" (Assault, Physical violence, Attack, Weapon threat)
+     * "vandalism" (Vandalism, Graffiti, Property damage)
+     * "traffic-incident" (Traffic violation, Hit and run, Vehicle collision)
+     * "suspicious-activity" (Unusual prowling, Stalking, Strange behavior)
+     * "missing-person" (Missing individuals, runaway youth)
+     * "cybercrime" (Online financial fraud, phishing, extortion)
+     * "harassment" (Harassment, Stalking, Intimidation)
+     * "other" (Other community safety concerns)
+2. Interactive Maps & Alerts:
+   - Live Public Map: "/map" (displays live verified incident pins, heatmaps, searched radius, 7-day danger spots)
+   - Live Safety Alerts: "/safety" (real-time broadcasted community alerts and hazard warnings)
+3. Safe Passage Virtual Escort:
+   - Route: "/officer/escorts" or automatic popup when walking into a red zone. Tracks GPS through danger corridors until safely exited.
+4. User Profile & Emergency SOS Contacts:
+   - Route: "/profile" (Citizen personal phone, family emergency contact number, relationship, residential address, blood group)
+5. Account & Auth:
+   - Login: "/login"
+   - Register: "/register"
+   - My Reports: "/citizen/reports" (track status of submitted reports: Submitted -> Under Review -> Verified -> Assigned -> Resolved)
+6. Emergency Official Helplines (India):
+   - 112: All-in-One National Emergency (Police, Fire, Medical, Disaster)
+   - 100: Police Control Room
+   - 108: Ambulance & Medical Service
+   - 1091: Women Distress Safety Helpline
+   - 101: Fire & Rescue
+   - 1098: Childline
+   - 1930: Cyber Crime Helpline
+
+USER CONTEXT: Current user role is "${userRole}".
+
+CRITICAL RESPONSE RULES:
+1. Always be polite, reassuring, professional, and concise (2-4 sentences max).
+2. If the user expresses intent to report an incident (e.g. theft, assault, accident, stolen property, etc.), explain that they can report it immediately (even anonymously with photo evidence) and ALWAYS include an "action" with the exact path and category pre-filled (e.g. {"type": "redirect", "label": "🚨 Go to Report Theft", "path": "/citizen/report?category=theft", "category": "theft", "icon": "AlertTriangle"}).
+3. If they ask about the map, route them to "/map".
+4. If they ask about escort or danger zones, route them to "/officer/escorts" or explain geofencing.
+5. If they ask about profile/family contacts, route them to "/profile".
+6. If they ask about emergency contacts or imminent life threat, mention 112 / 100 and route to "tel:112" or helplines.
+7. Return valid JSON only with keys:
+   - "reply": Markdown formatted string with helpful advice.
+   - "action": optional object {"type": "redirect", "label": "Button Label", "path": "/destination/path", "category": "optional-slug", "icon": "AlertTriangle|Map|Shield|Phone|User|FileText"}
+   - "quickReplies": array of 2 to 4 suggested follow-up questions/prompts.`;
+
+      // Build conversation contents
+      const contents: any[] = [];
+      contents.push({
+        role: 'user',
+        parts: [{ text: systemInstruction + `\n\nUser Question: "${query}"` }],
+      });
+
+      // Try gemini-3.6-flash first, fallback to gemini-2.5-flash
+      const models = ['gemini-3.6-flash', 'gemini-2.5-flash'];
+      for (const model of models) {
+        try {
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents,
+                generationConfig: {
+                  responseMimeType: 'application/json',
+                  temperature: 0.2,
+                },
+              }),
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            const candidate = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (candidate) {
+              const parsed = JSON.parse(candidate);
+              if (parsed && typeof parsed.reply === 'string') {
+                return {
+                  reply: parsed.reply,
+                  action: parsed.action || undefined,
+                  quickReplies: Array.isArray(parsed.quickReplies) ? parsed.quickReplies : undefined,
+                };
+              }
+            }
+          }
+        } catch {
+          // Continue to next model if this one fails
+        }
+      }
+    } catch (err: any) {
+      console.warn('⚠️ [AI ASSISTANT] Gemini API fallback triggered:', err.message);
+    }
+  }
+
+  // 2. Resilient Rule-Based Local Fallback (100% Guaranteed Uptime)
+  return getFallbackAssistantResponse(lower);
+}
+
+function getFallbackAssistantResponse(lower: string): AssistantResponse {
+  // Theft & Burglary
+  if (
+    lower.includes('theft') ||
+    lower.includes('stolen') ||
+    lower.includes('stole') ||
+    lower.includes('rob') ||
+    lower.includes('burglar') ||
+    lower.includes('snatch') ||
+    lower.includes('pickpocket') ||
+    lower.includes('lost bike') ||
+    lower.includes('lost phone')
+  ) {
+    return {
+      reply:
+        'To report a theft, burglary, or stolen property, you can file an incident report with exact GPS coordinates and photographic evidence. Reports can be submitted under your verified account or 100% anonymously.',
+      action: {
+        type: 'redirect',
+        label: '🚨 Go to Report Theft Incident',
+        path: '/citizen/report?category=theft',
+        category: 'theft',
+        icon: 'AlertTriangle',
+      },
+      quickReplies: ['Can I report anonymously?', 'How to upload photos?', 'Check active theft map'],
+    };
+  }
+
+  // Assault / Physical Violence / Weapon
+  if (
+    lower.includes('assault') ||
+    lower.includes('attack') ||
+    lower.includes('fight') ||
+    lower.includes('violence') ||
+    lower.includes('knife') ||
+    lower.includes('weapon') ||
+    lower.includes('threat') ||
+    lower.includes('hit')
+  ) {
+    return {
+      reply:
+        'If you or someone nearby is in immediate life-threatening physical danger, please dial **112** or **100** immediately. To document an assault or violence incident for law enforcement triage, use our fast reporting form.',
+      action: {
+        type: 'redirect',
+        label: '🚨 Go to Report Assault Incident',
+        path: '/citizen/report?category=assault',
+        category: 'assault',
+        icon: 'AlertTriangle',
+      },
+      quickReplies: ['Call 112 Police Hotline', 'Where are danger zones?', 'Start Safe Escort'],
+    };
+  }
+
+  // Robbery
+  if (lower.includes('robbery') || lower.includes('mugging') || lower.includes('extortion')) {
+    return {
+      reply:
+        'For robbery involving physical force or threats, report it immediately to initiate officer investigation and neighborhood red zone containment.',
+      action: {
+        type: 'redirect',
+        label: '🚨 Go to Report Robbery',
+        path: '/citizen/report?category=robbery',
+        category: 'robbery',
+        icon: 'AlertTriangle',
+      },
+      quickReplies: ['Dial 100 Police Control', 'Open Live Crime Map'],
+    };
+  }
+
+  // Traffic / Accident
+  if (
+    lower.includes('traffic') ||
+    lower.includes('accident') ||
+    lower.includes('crash') ||
+    lower.includes('collision') ||
+    lower.includes('hit and run')
+  ) {
+    return {
+      reply:
+        'Report vehicular collisions, road hazards, or hit-and-run incidents so traffic authorities and nearby citizens are promptly alerted.',
+      action: {
+        type: 'redirect',
+        label: '🚗 Go to Report Traffic Incident',
+        path: '/citizen/report?category=traffic-incident',
+        category: 'traffic-incident',
+        icon: 'AlertTriangle',
+      },
+      quickReplies: ['Call 108 Ambulance', 'View Public Map'],
+    };
+  }
+
+  // Vandalism / Property Damage
+  if (lower.includes('vandalism') || lower.includes('graffiti') || lower.includes('broken') || lower.includes('property damage')) {
+    return {
+      reply:
+        'Document public or private property damage, graffiti, or municipal vandalism with camera evidence for community restoration.',
+      action: {
+        type: 'redirect',
+        label: '🔨 Go to Report Vandalism',
+        path: '/citizen/report?category=vandalism',
+        category: 'vandalism',
+        icon: 'AlertTriangle',
+      },
+      quickReplies: ['Can I stay anonymous?', 'How to upload evidence?'],
+    };
+  }
+
+  // Cybercrime / Fraud / Scam
+  if (
+    lower.includes('cyber') ||
+    lower.includes('scam') ||
+    lower.includes('fraud') ||
+    lower.includes('phishing') ||
+    lower.includes('online theft') ||
+    lower.includes('money stolen online')
+  ) {
+    return {
+      reply:
+        'For online financial fraud or cyber harassment, you can submit details here and also report directly to the National Cyber Crime Helpline at **1930**.',
+      action: {
+        type: 'redirect',
+        label: '💻 Go to Report Cybercrime',
+        path: '/citizen/report?category=cybercrime',
+        category: 'cybercrime',
+        icon: 'AlertTriangle',
+      },
+      quickReplies: ['Call 1930 Cyber Helpline', 'Report identity theft'],
+    };
+  }
+
+  // Harassment / Stalking
+  if (lower.includes('harass') || lower.includes('stalk') || lower.includes('women') || lower.includes('eve teasing')) {
+    return {
+      reply:
+        'Trinetra provides confidential reporting for harassment and stalking. Women in distress can also connect with the 24/7 Women Helpline at **1091**.',
+      action: {
+        type: 'redirect',
+        label: '🛡️ Go to Report Harassment',
+        path: '/citizen/report?category=harassment',
+        category: 'harassment',
+        icon: 'AlertTriangle',
+      },
+      quickReplies: ['Call 1091 Women Helpline', 'Start Safe Escort', 'Report Anonymously'],
+    };
+  }
+
+  // Missing Person
+  if (lower.includes('missing') || lower.includes('lost person') || lower.includes('kidnap') || lower.includes('child')) {
+    return {
+      reply:
+        'File an urgent Missing Person alert with physical description, last known location, and photograph for law enforcement and citizen vigilance.',
+      action: {
+        type: 'redirect',
+        label: '👤 Go to Report Missing Person',
+        path: '/citizen/report?category=missing-person',
+        category: 'missing-person',
+        icon: 'AlertTriangle',
+      },
+      quickReplies: ['Call 1098 Childline', 'Emergency 112 Hotline'],
+    };
+  }
+
+  // General Incident Reporting
+  if (lower.includes('report') || lower.includes('file') || lower.includes('complaint')) {
+    return {
+      reply:
+        'You can report any neighborhood safety incident, hazard, or crime directly on our reporting page with GPS auto-detection, AI camera analysis, and optional anonymous mode.',
+      action: {
+        type: 'redirect',
+        label: '📝 Open Incident Report Form',
+        path: '/citizen/report',
+        icon: 'FileText',
+      },
+      quickReplies: ['Report a Theft', 'Report Assault / Fight', 'Report Anonymously'],
+    };
+  }
+
+  // Live Map / Danger Zones / Red Zones
+  if (
+    lower.includes('map') ||
+    lower.includes('red zone') ||
+    lower.includes('danger') ||
+    lower.includes('heatmap') ||
+    lower.includes('location')
+  ) {
+    return {
+      reply:
+        'The Live Public Map displays real-time verified incident markers, tactical danger zones (which automatically expire 7 days after resolution), and search radius filters.',
+      action: {
+        type: 'redirect',
+        label: '🗺️ Open Live Safety Map',
+        path: '/map',
+        icon: 'Map',
+      },
+      quickReplies: ['What is a Red Zone?', 'Where are recent crimes?', 'How to start escort?'],
+    };
+  }
+
+  // Safe Passage Escort
+  if (
+    lower.includes('escort') ||
+    lower.includes('safe corridor') ||
+    lower.includes('walk home') ||
+    lower.includes('safe passage') ||
+    lower.includes('jane')
+  ) {
+    return {
+      reply:
+        'Trinetra Safe Passage Virtual Escort detects when you enter geofenced high-risk red zones and tracks your live GPS path to the officer tactical console until you safely exit.',
+      action: {
+        type: 'redirect',
+        label: '🛡️ View Safe Corridors & Escorts',
+        path: '/officer/escorts',
+        icon: 'Shield',
+      },
+      quickReplies: ['How does auto-exit work?', 'Who monitors my path?', 'Open Public Map'],
+    };
+  }
+
+  // Emergency Numbers / Helpline
+  if (
+    lower.includes('emergency') ||
+    lower.includes('helpline') ||
+    lower.includes('phone') ||
+    lower.includes('call') ||
+    lower.includes('hotline') ||
+    lower.includes('number')
+  ) {
+    return {
+      reply:
+        'Immediate Official Emergency Helplines:\n• **112**: All-in-One National Emergency (Police, Fire, Medical)\n• **100**: Police Control Room\n• **108**: Ambulance & Medical Service\n• **1091**: Women Distress Safety\n• **101**: Fire & Rescue\n• **1930**: Cyber Crime Helpline',
+      action: {
+        type: 'redirect',
+        label: '📞 Dial 112 National Emergency',
+        path: 'tel:112',
+        icon: 'Phone',
+      },
+      quickReplies: ['Report an incident', 'View live map', 'Safe Escort Mode'],
+    };
+  }
+
+  // User Profile / Emergency Family Contacts
+  if (
+    lower.includes('profile') ||
+    lower.includes('family') ||
+    lower.includes('contact') ||
+    lower.includes('sos') ||
+    lower.includes('address') ||
+    lower.includes('blood')
+  ) {
+    return {
+      reply:
+        'You can update your personal emergency profile, including optional family SOS phone numbers, relationship, home address, and medical blood group in your Profile section.',
+      action: {
+        type: 'redirect',
+        label: '👤 Manage Emergency Profile',
+        path: '/profile',
+        icon: 'User',
+      },
+      quickReplies: ['Why add family contacts?', 'My active reports', 'Report an incident'],
+    };
+  }
+
+  // Register / Sign Up
+  if (lower.includes('register') || lower.includes('sign up') || lower.includes('create account')) {
+    return {
+      reply:
+        'Registration is fast and secure. We send an authentic 6-digit OTP code to your email for verification. No account is created until your OTP is verified.',
+      action: {
+        type: 'redirect',
+        label: '✍️ Create Citizen Account',
+        path: '/register',
+        icon: 'User',
+      },
+      quickReplies: ['Sign In', 'Report anonymously without account'],
+    };
+  }
+
+  // Login
+  if (lower.includes('login') || lower.includes('sign in')) {
+    return {
+      reply: 'Sign in to your Trinetra account to file reports, manage family contacts, and track active investigations.',
+      action: {
+        type: 'redirect',
+        label: '🔐 Sign In',
+        path: '/login',
+        icon: 'User',
+      },
+      quickReplies: ['Register new account', 'Browse public map'],
+    };
+  }
+
+  // Default Greeting / Help
+  return {
+    reply:
+      'Hello! I am your **Trinetra AI Guide**. I can help you report incidents (theft, assault, traffic, etc.), explore the live safety map, start virtual safe corridors, or reach emergency helplines. What would you like help with?',
+    action: {
+      type: 'redirect',
+      label: '🚨 Report an Incident',
+      path: '/citizen/report',
+      icon: 'FileText',
+    },
+    quickReplies: [
+      'Report a Theft',
+      'Where is the crime map?',
+      'How does Safe Escort work?',
+      'Emergency numbers',
+    ],
+  };
+}
+
+
