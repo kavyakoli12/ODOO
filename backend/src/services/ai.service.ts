@@ -658,7 +658,7 @@ CRITICAL RESPONSE RULES:
           );
 
           if (response.ok) {
-            const data = await response.json();
+            const data = (await response.json()) as any;
             const candidate = data?.candidates?.[0]?.content?.parts?.[0]?.text;
             if (candidate) {
               const parsed = JSON.parse(candidate);
