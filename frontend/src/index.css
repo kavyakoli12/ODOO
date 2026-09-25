@@ -15,6 +15,17 @@
     overflow-x: hidden;
     max-width: 100vw;
   }
+
+  /* Prevent blinking caret/cursor on static and non-input elements */
+  :not(input):not(textarea):not([contenteditable="true"]) {
+    caret-color: transparent;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"] {
+    caret-color: auto;
+  }
 }
 
 /* Custom scrollbar for dark UI */

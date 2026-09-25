@@ -34,7 +34,7 @@ export function TrinetraLogo({
     <img
       src="/logo.png"
       alt="Trinetra Logo"
-      className={`w-full h-full object-contain filter drop-shadow-[0_0_6px_rgba(255,255,255,0.45)] transition-transform duration-200 ${imageClassName}`}
+      className={`w-full h-full object-contain filter drop-shadow-[0_0_6px_rgba(255,255,255,0.45)] transition-transform duration-200 select-none pointer-events-none ${imageClassName}`}
       loading="eager"
     />
   );
@@ -72,14 +72,14 @@ export function TrinetraLogo({
   return (
     <div className="flex items-center gap-2.5 group">
       {iconElement}
-      <div className="flex flex-col justify-center">
+      <div className="flex flex-col justify-center select-none">
         <span
-          className={`font-bold tracking-tight text-white leading-tight ${textClassName || 'text-lg'}`}
+          className={`font-bold tracking-tight text-white leading-tight select-none ${textClassName || 'text-lg'}`}
         >
           Trinetra
         </span>
         {subtitle && (
-          <span className="text-[10px] text-slate-400 leading-tight hidden sm:inline">
+          <span className="text-[10px] text-slate-400 leading-tight hidden sm:inline select-none">
             {subtitle}
           </span>
         )}
