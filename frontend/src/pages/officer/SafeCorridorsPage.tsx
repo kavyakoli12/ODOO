@@ -540,17 +540,12 @@ export function SafeCorridorsPage() {
                       <div className="p-1.5 space-y-1">
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-[10px] font-bold text-red-400 uppercase tracking-wider">
-                            {zone.isResolved ? 'Resolved (7-Day Watch)' : 'Active Red Zone'}
+                            {zone.isResolved ? 'Resolved Hazard' : 'Active Red Zone'}
                           </span>
-                          {zone.activeDaysRemaining !== undefined && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold">
-                              {zone.activeDaysRemaining}d remaining
-                            </span>
-                          )}
                         </div>
                         <div className="text-sm font-bold text-slate-900">{zone.name}</div>
                         <div className="text-xs text-slate-600">
-                          Radius: {zone.radiusMeters}m • {zone.isResolved ? 'Resolved Incident (Monitored for 7 days)' : 'Active Incident Corridor'}
+                          Radius: {zone.radiusMeters}m • {zone.isResolved ? 'Resolved Hazard Spot' : 'Active Incident Corridor'}
                         </div>
                       </div>
                     </Popup>

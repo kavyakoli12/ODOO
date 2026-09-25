@@ -70,6 +70,7 @@ export function InvestigationsPage() {
     if (newFor) {
       setFormIncidentId(newFor);
       setIsCreateModalOpen(true);
+      fetchVerifiedIncidents(newFor);
     }
   }, [searchParams]);
 
@@ -114,16 +115,51 @@ export function InvestigationsPage() {
   }, [statusFilter, priorityFilter, searchQuery]);
 
   // Fetch verified incidents for creation modal
-  const fetchVerifiedIncidents = async () => {
+  const fetchVerifiedIncidents = async (preferredIncidentId?: string) => {
     try {
       setIsLoadingIncidents(true);
       const res = await api.get<{
         success: boolean;
         data: Incident[];
       }>('/incidents/officer/queue?status=verified');
-      setVerifiedIncidents(res.data.data || []);
-      if (res.data.data?.length > 0 && !formIncidentId) {
-        setFormIncidentId(res.data.data[0].id);
+
+      let list = Array.isArray(res.data.data) ? res.data.data : [];
+      const targetId = preferredIncidentId || formIncidentId || searchParams.get('newFor');
+
+      // If a specific incident was targeted (e.g. from Incident Review), ensure it is in the list
+      if (targetId) {
+        const found = list.find((inc) => (inc.id || (inc as any)._id) === targetId);
+        if (!found) {
+          try {
+            const singleRes = await api.get<{ success: boolean; data: Incident }>(`/incidents/officer/${targetId}`);
+            if (singleRes.data?.data) {
+              const singleInc = singleRes.data.data;
+              list = [singleInc, ...list];
+              setFormTitle((prev) => prev || `Investigation: ${singleInc.title}`);
+              setFormDescription((prev) => prev || singleInc.description || '');
+            }
+          } catch {
+            try {
+              const fallbackRes = await api.get<{ success: boolean; data: Incident }>(`/incidents/${targetId}`);
+              if (fallbackRes.data?.data) {
+                const singleInc = fallbackRes.data.data;
+                list = [singleInc, ...list];
+                setFormTitle((prev) => prev || `Investigation: ${singleInc.title}`);
+                setFormDescription((prev) => prev || singleInc.description || '');
+              }
+            } catch {}
+          }
+        } else {
+          setFormTitle((prev) => prev || `Investigation: ${found.title}`);
+          setFormDescription((prev) => prev || found.description || '');
+        }
+      }
+
+      setVerifiedIncidents(list);
+      if (targetId) {
+        setFormIncidentId(targetId);
+      } else if (list.length > 0 && !formIncidentId) {
+        setFormIncidentId(list[0].id || (list[0] as any)._id);
       }
     } catch (err) {
       // Fallback
@@ -470,7 +506,12 @@ export function InvestigationsPage() {
       {/* Initiate Investigation Modal */}
       <Modal
         isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          if (searchParams.get('newFor')) {
+            navigate('/officer/investigations', { replace: true });
+          }
+        }}
         title="Initiate Formal Investigation Case"
         description="Launch an official law enforcement inquiry for an authentic, verified incident report."
       >
@@ -481,7 +522,7 @@ export function InvestigationsPage() {
               Select Verified Incident Report *
             </label>
             {isLoadingIncidents ? (
-              <div className="py-2 text-xs text-slate-400">Loading verified incidents...</div>
+              <div className="py-2 text-xs text-slate-400">Loading verified incident details...</div>
             ) : verifiedIncidents.length === 0 ? (
               <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300">
                 No verified incidents found in queue. You must verify an incident report first in the Incident Queue before launching a formal investigation.
@@ -489,12 +530,20 @@ export function InvestigationsPage() {
             ) : (
               <select
                 value={formIncidentId}
-                onChange={(e) => setFormIncidentId(e.target.value)}
+                onChange={(e) => {
+                  const selId = e.target.value;
+                  setFormIncidentId(selId);
+                  const matched = verifiedIncidents.find((i) => (i.id || (i as any)._id) === selId);
+                  if (matched) {
+                    setFormTitle(`Investigation: ${matched.title}`);
+                    setFormDescription(matched.description || '');
+                  }
+                }}
                 className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-brand-500"
                 required
               >
                 {verifiedIncidents.map((inc) => (
-                  <option key={inc.id} value={inc.id}>
+                  <option key={inc.id || (inc as any)._id} value={inc.id || (inc as any)._id}>
                     {inc.reporterName || (inc.isAnonymous ? 'Anonymous' : 'Registered Citizen')} | [{inc.trackingId}] {inc.title} | {inc.address}
                   </option>
                 ))}

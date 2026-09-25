@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { MapPin, Navigation, Search, Loader2, Sparkles } from 'lucide-react';
+import { MapPin, Navigation, Search, Loader2 } from 'lucide-react';
 import { Button, Input, useToast } from '@/components/ui';
 import { MAP_TILE_CONFIG } from '@/lib/mapConfig';
 import {
   getFastCurrentPosition,
   cachedReverseGeocode,
-  DEMO_LOCATION_PRESETS,
   DEFAULT_COORDS,
 } from '@/lib/geolocation';
 import 'leaflet/dist/leaflet.css';
@@ -187,33 +186,7 @@ export function LocationPicker({ latitude, longitude, address, onChange }: Locat
         </Button>
       </div>
 
-      {/* 1-Click Presentation & Demo Presets */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-        <span className="text-[11px] text-slate-400 font-semibold shrink-0 flex items-center gap-1 mr-1">
-          <Sparkles className="w-3 h-3 text-cyan-400" /> Demo Presets:
-        </span>
-        {DEMO_LOCATION_PRESETS.map((preset) => (
-          <button
-            key={preset.id}
-            type="button"
-            onClick={() => {
-              setLocationNotice(null);
-              setSearchError(null);
-              onChange(preset.lat, preset.lng, preset.address);
-              showToast('info', `Pinned to ${preset.name}`, 'Preset Selected');
-            }}
-            className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-500/50 text-[11px] text-slate-200 transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
-          >
-            <span>📍</span>
-            <span>{preset.shortName}</span>
-            {preset.badge && (
-              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-red-500/20 text-red-300 border border-red-500/30">
-                {preset.badge}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+
 
       {locationNotice && (
         <div className="p-2.5 rounded-lg bg-cyan-950/40 border border-cyan-500/40 text-[11px] text-cyan-200 flex items-center justify-between">

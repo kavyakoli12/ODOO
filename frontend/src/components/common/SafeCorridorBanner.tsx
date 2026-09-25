@@ -202,6 +202,14 @@ export function SafeCorridorBanner() {
             handleAutoExitZone(activeEscort);
           }
         } else if (dangerZones.length > 0) {
+          // Check if snoozed (5-minute cooldown after clicking 'Not Now')
+          try {
+            const snoozeUntil = Number(sessionStorage.getItem('safe_escort_snooze_until') || 0);
+            if (now < snoozeUntil) {
+              return;
+            }
+          } catch {}
+
           // Check if citizen entered any danger zone
           for (const zone of dangerZones) {
             if (dismissedZoneIds.has(zone.id)) continue;
@@ -417,15 +425,23 @@ export function SafeCorridorBanner() {
     );
   };
 
-  // Dismiss Prompt
-  const handleDismissPrompt = (zoneId: string) => {
-    setDismissedZoneIds((prev) => {
-      const next = new Set(prev).add(zoneId);
-      try {
-        sessionStorage.setItem('safe_passage_dismissed_zones', JSON.stringify(Array.from(next)));
-      } catch {}
-      return next;
-    });
+  // Dismiss Prompt & Snooze all notifications for 5 minutes
+  const handleDismissPrompt = (zoneId?: string) => {
+    // 5-minute snooze (300,000 ms) so citizen is never spammed
+    const snoozeUntil = Date.now() + 5 * 60 * 1000;
+    try {
+      sessionStorage.setItem('safe_escort_snooze_until', String(snoozeUntil));
+    } catch {}
+
+    if (zoneId) {
+      setDismissedZoneIds((prev) => {
+        const next = new Set(prev).add(zoneId);
+        try {
+          sessionStorage.setItem('safe_passage_dismissed_zones', JSON.stringify(Array.from(next)));
+        } catch {}
+        return next;
+      });
+    }
     setDetectedZonePrompt(null);
   };
 
@@ -461,11 +477,6 @@ export function SafeCorridorBanner() {
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-white uppercase tracking-wide">
                       {detectedZonePrompt.isResolved ? 'Resolved Hazard Spot' : 'Red Zone Detected'}
-                    </span>
-                    <span className="text-[10px] px-2 py-0.2 rounded-full bg-red-500/30 text-red-300 font-semibold border border-red-500/40">
-                      {detectedZonePrompt.isResolved
-                        ? `7-DAY WATCH (${detectedZonePrompt.activeDaysRemaining}d left)`
-                        : 'HIGH CAUTION'}
                     </span>
                   </div>
                   <h4 className="text-xs font-bold text-slate-200 mt-0.5 line-clamp-1">

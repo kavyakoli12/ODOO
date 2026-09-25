@@ -110,10 +110,9 @@ export function OfficerDashboard() {
             <span className="text-xs font-bold uppercase tracking-wider text-indigo-400">
               Law Enforcement Command Console
             </span>
-            <Badge status="assigned">OFFICER CLEARANCE</Badge>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">
-            Officer {user?.name || 'Miller'}
+            {user?.name ? (user.name.startsWith('Officer ') ? user.name : `Officer ${user.name}`) : 'Officer Miller'}
           </h1>
           <p className="text-xs text-slate-400 mt-1">
             Department: <strong>{user?.department || 'Metropolitan Police Dept'}</strong> • Badge: <strong>{user?.badgeNumber || 'LE-9042'}</strong>

@@ -247,14 +247,7 @@ export function FloatingChatbot() {
               <div>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-bold text-white tracking-wide">Trinetra AI Guide</span>
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono border border-indigo-500/30">
-                    2.5 Flash
-                  </span>
                 </div>
-                <p className="text-[10px] text-slate-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Live Navigation & Safety Assistant
-                </p>
               </div>
             </div>
 

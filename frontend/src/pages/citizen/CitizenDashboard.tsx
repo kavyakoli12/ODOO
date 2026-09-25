@@ -11,7 +11,6 @@ import {
   CardDescription,
   CardContent,
   Button,
-  Badge,
   LoadingSpinner,
 } from '@/components/ui';
 import {
@@ -66,7 +65,6 @@ export function CitizenDashboard() {
             <span className="text-xs font-semibold uppercase tracking-wider text-brand-400">
               Citizen Reporting Portal
             </span>
-            <Badge status="submitted">IDOR Protected</Badge>
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">
             Welcome back, {user?.name || 'Citizen'}
